@@ -1024,6 +1024,44 @@ function protectLatex(text) {
   return { text, store };
 }
 
+
+function protectMath(text) {
+    const store = [];
+    const save = (m) => {
+        const id = store.length;
+        store.push(m);
+        return `⟦M${id}⟧`;
+    };
+
+    text = text.replace(/\$\$[\s\S]*?\$\$/g, save);
+    text = text.replace(/\$[^$\n]+\$/g, save);
+    text = text.replace(/\\\([\s\S]*?\\\)/g, save);
+    text = text.replace(/\\\[[\s\S]*?\\\]/g, save);
+    text = text.replace(/\\begin\{[\s\S]*?\\end\{[^}]+\}/g, save);
+
+    const lines = text.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        const mathSymbols =
+            (line.match(/[=+\-*/^_∑∏∫√≤≥≠∞→←↔≈≡∈∉⊂⊃∪∩]/g) || []).length;
+
+        if (
+            mathSymbols >= 2 ||
+            /f\s*\(.*\)/.test(line) ||
+            /[a-zA-Z]\^\d+/.test(line) ||
+            /[a-zA-Z]_\d+/.test(line) ||
+            /∑|∫|lim|sup|inf|max|min/.test(line)
+        ) {
+            lines[i] = save(line);
+        }
+    }
+
+    text = lines.join('\n');
+    return { text, store };
+}
+
 function restoreLatex(text, store) {
   return text.replace(/⟦M(\d+)⟧/g, (_, i) => store[parseInt(i)] || _);
 }
@@ -1196,7 +1234,7 @@ async function runTranslation() {
   let store = [];
 
   if (useLatex) {
-    const protected_ = protectLatex(workText);
+    const protected_ = protectMath(workText);
     workText = protected_.text;
     store = protected_.store;
     log('info', `Đã bảo vệ ${store.length} ký hiệu/công thức toán học`, true);
