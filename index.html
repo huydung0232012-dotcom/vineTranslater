@@ -851,18 +851,75 @@ async function extractPDF(file) {
   let fullText = '';
 
   if (!useOCR) {
-    // Chế độ tiêu chuẩn: đọc text layer trực tiếp (nhanh)
+    // Chế độ tiêu chuẩn nâng cao: giữ đúng thứ tự dòng, nhận diện công thức toán
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
-      const content = await page.getTextContent();
-      const pageText = content.items.map(item => item.str).join(' ');
+      const content = await page.getTextContent({ includeMarkedContent: false });
+      const viewport = page.getViewport({ scale: 1.0 });
+
+      // Nhóm các item theo dòng (y-coordinate gần nhau = cùng dòng)
+      const items = content.items.filter(item => item.str && item.str.trim());
+
+      // Sắp xếp theo y giảm dần (top → bottom) rồi x tăng dần (left → right)
+      items.sort((a, b) => {
+        const ay = Math.round(a.transform[5] / 3) * 3;
+        const by = Math.round(b.transform[5] / 3) * 3;
+        if (ay !== by) return by - ay;
+        return a.transform[4] - b.transform[4];
+      });
+
+      // Gom items cùng dòng (cùng y ±4px)
+      const lines = [];
+      let currentLine = [];
+      let lastY = null;
+
+      for (const item of items) {
+        const y = Math.round(item.transform[5] / 4) * 4;
+        if (lastY === null || Math.abs(y - lastY) < 6) {
+          currentLine.push(item);
+        } else {
+          if (currentLine.length) lines.push(currentLine);
+          currentLine = [item];
+        }
+        lastY = y;
+      }
+      if (currentLine.length) lines.push(currentLine);
+
+      // Ghép từng dòng, phát hiện khoảng trắng giữa các từ
+      const pageLines = lines.map(line => {
+        let result = '';
+        for (let j = 0; j < line.length; j++) {
+          const item = line[j];
+          if (j > 0) {
+            const prev = line[j - 1];
+            const prevEnd = prev.transform[4] + (prev.width || 0);
+            const gap = item.transform[4] - prevEnd;
+            // Khoảng cách > 3px → thêm space
+            if (gap > 3) result += ' ';
+          }
+          result += item.str;
+        }
+        return result.trim();
+      }).filter(l => l.length > 0);
+
+      // Phát hiện đoạn văn: khoảng cách dọc lớn → xuống dòng đôi
+      let pageText = '';
+      for (let li = 0; li < pageLines.length; li++) {
+        pageText += pageLines[li];
+        if (li < pageLines.length - 1) {
+          pageText += '\n';
+        }
+      }
+
+      // Hậu xử lý: ghép các dòng bị ngắt giữa chừng (dòng không kết thúc bằng dấu câu)
+      pageText = smartMergeLines(pageText);
+
       fullText += pageText + '\n\n';
-      if (i % 10 === 0) log('info', `  Đọc trang ${i}/${pdf.numPages}...`);
+      if (i % 10 === 0 || i === pdf.numPages) log('info', `  Đọc trang ${i}/${pdf.numPages}...`);
     }
+
     fullText = fullText.trim();
 
-    // Nếu text layer rỗng/lỗi (PDF scan ảnh hoặc font bị hỏng mã hóa),
-    // tự động gợi ý dùng OCR thay vì trả về văn bản rác hoặc trống.
     if (fullText.replace(/\s/g, '').length < 20) {
       log('warn', 'Text layer gần như trống — file có thể là PDF scan ảnh hoặc bị lỗi font.');
       log('warn', 'Hãy chuyển "Chế độ đọc PDF" sang "Quét OCR" rồi tải lại file.');
@@ -870,7 +927,7 @@ async function extractPDF(file) {
     return fullText;
   }
 
-  // Chế độ OCR: render từng trang thành ảnh rồi nhận diện ký tự bằng Tesseract
+  // Chế độ OCR nâng cao: scale 3x để nhận diện công thức toán tốt hơn
   log('warn', 'Đang khởi tạo Tesseract OCR Engine (lần đầu sẽ tải model, có thể mất chút thời gian)...');
   statusText.textContent = 'Đang tải OCR engine...';
   const worker = await Tesseract.createWorker('vie+eng');
@@ -879,21 +936,26 @@ async function extractPDF(file) {
   try {
     for (let i = 1; i <= pdf.numPages; i++) {
       statusText.textContent = `OCR trang ${i}/${pdf.numPages}...`;
-      log('info', `Đang quét OCR trang ${i}/${pdf.numPages} (máy có thể chạy chậm hơn bình thường)...`);
+      log('info', `Đang quét OCR trang ${i}/${pdf.numPages}...`);
 
       const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 2.0 }); // scale cao hơn để OCR nhận diện chính xác hơn
+      const viewport = page.getViewport({ scale: 3.0 }); // scale 3x: nhận diện font nhỏ & ký hiệu toán tốt hơn
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = viewport.width;
       canvas.height = viewport.height;
+
+      // Nền trắng để OCR nhận diện tốt hơn
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
       await page.render({ canvasContext: ctx, viewport }).promise;
 
       const { data: { text } } = await worker.recognize(canvas);
       fullText += text + '\n\n';
 
       canvas.width = 0;
-      canvas.height = 0; // giải phóng bộ nhớ canvas sớm
+      canvas.height = 0;
     }
   } finally {
     await worker.terminate();
@@ -902,42 +964,107 @@ async function extractPDF(file) {
   return fullText.trim();
 }
 
+// Hậu xử lý dòng: ghép dòng bị ngắt giữa câu (không kết thúc bằng dấu câu)
+function smartMergeLines(text) {
+  const lines = text.split('\n');
+  const result = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) { result.push(''); continue; }
+
+    const next = lines[i + 1]?.trim() || '';
+    const endsWithPunct = /[.!?;:,\]\)\}…\u2026]$/.test(line);
+    const nextStartsUpper = /^[A-ZÁÉÍÓÚÀÈÌÒÙÂÊÔƯĂĐ0-9\\\$\∑\∫\∏]/.test(next);
+    const isMathLine = /[=\+\-\*\/\^\_\{\}\[\]\\∑∫∏√≤≥≠∈∉⊂⊃∪∩→←↔∞]/.test(line);
+
+    // Không ghép nếu: kết thúc bằng dấu câu, dòng tiếp theo bắt đầu bằng hoa/số, hoặc là dòng toán
+    if (endsWithPunct || nextStartsUpper || isMathLine || !next) {
+      result.push(line);
+    } else {
+      // Ghép dòng này với dòng tiếp theo
+      lines[i + 1] = line + ' ' + next;
+    }
+  }
+  return result.join('\n');
+}
+
 // ─────────────────────────────────────────────
-// LATEX PROTECTION
+// BẢO VỆ KÝ HIỆU TOÁN HỌC (NÂNG CẤP)
+// Bắt: LaTeX chuẩn ($...$, \[...\], \begin), Unicode math, biểu thức toán thuần
 // ─────────────────────────────────────────────
 function protectLatex(text) {
   const store = [];
-  // Display math: $$...$$
-  text = text.replace(/\$\$([\s\S]*?)\$\$/g, (m) => { store.push(m); return `⟦LATEX${store.length-1}⟧`; });
-  // Display math: \[...\]
-  text = text.replace(/\\\[([\s\S]*?)\\\]/g, (m) => { store.push(m); return `⟦LATEX${store.length-1}⟧`; });
-  // Inline math: $...$
-  text = text.replace(/\$([^$\n]+?)\$/g, (m) => { store.push(m); return `⟦LATEX${store.length-1}⟧`; });
-  // \begin{...}...\end{...}
-  text = text.replace(/\\begin\{[^}]+\}[\s\S]*?\\end\{[^}]+\}/g, (m) => { store.push(m); return `⟦LATEX${store.length-1}⟧`; });
+  const ph = (m) => { store.push(m); return `⟦M${store.length-1}⟧`; };
+
+  // 1. Display math: $$...$$
+  text = text.replace(/\$\$([\s\S]*?)\$\$/g, ph);
+  // 2. Display math: \[...\]
+  text = text.replace(/\\\[([\s\S]*?)\\\]/g, ph);
+  // 3. \begin{...}...\end{...}
+  text = text.replace(/\\begin\{[^}]+\}[\s\S]*?\\end\{[^}]+\}/g, ph);
+  // 4. Inline math: $...$
+  text = text.replace(/\$([^$\n]+?)\$/g, ph);
+  // 5. \( ... \)
+  text = text.replace(/\\\([\s\S]*?\\\)/g, ph);
+
+  // 6. Bảo vệ ký hiệu toán Unicode đặc biệt — đặt vào placeholder để không bị dịch
+  const MATH_UNICODE = /[∑∏∫∬∭∮∂∇√∞±∓×÷≤≥≠≈≡≢∈∉⊂⊃⊆⊇∪∩∅→←↔⇒⇔∀∃¬∧∨⊕⊗⊙ℕℤℚℝℂ∥⊥∠△□▷◁⟨⟩⌈⌉⌊⌋]/g;
+  text = text.replace(MATH_UNICODE, ph);
+
+  // 7. Biểu thức toán dạng: f(x), lim_{x→0}, max/min/sup/inf + biểu thức
+  text = text.replace(/\b(lim|sup|inf|max|min|arg\s*max|arg\s*min|limsup|liminf)\s*[_^{(]/g, ph);
+
+  // 8. Số kèm lũy thừa/chỉ số: x^2, a_n, f_k, n^{k+1}
+  text = text.replace(/\b([a-zA-Z][a-zA-Z0-9]*)\s*[\^_]\s*\{[^}]{1,30}\}/g, ph);
+  text = text.replace(/\b([a-zA-Z][a-zA-Z0-9]*)\s*[\^_]\s*[a-zA-Z0-9(+\-]{1,10}/g, ph);
+
+  // 9. Phân số dạng: a/b (chỉ khi a và b là biểu thức, không phải chú thích tỷ lệ đời thường)
+  text = text.replace(/\b([a-zA-Z0-9]+)\s*\/\s*([a-zA-Z0-9!]+)\b(?!\s*[a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ])/g, ph);
+
   return { text, store };
 }
 
 function restoreLatex(text, store) {
-  return text.replace(/⟦LATEX(\d+)⟧/g, (_, i) => store[parseInt(i)] || _);
+  return text.replace(/⟦M(\d+)⟧/g, (_, i) => store[parseInt(i)] || _);
+}
+
+// Hậu xử lý bản dịch: sửa lỗi thường gặp của Google Translate với toán học
+function postProcessTranslation(text) {
+  // Khôi phục placeholder bị dịch sai (Google đôi khi dịch chữ trong placeholder)
+  text = text.replace(/\[\[M(\d+)\]\]/g, '⟦M$1⟧');
+  text = text.replace(/【M(\d+)】/g, '⟦M$1⟧');
+  text = text.replace(/⟦\s*M\s*(\d+)\s*⟧/g, '⟦M$1⟧');
+
+  // Sửa khoảng trắng thừa quanh placeholder
+  text = text.replace(/\s+⟦M(\d+)⟧/g, ' ⟦M$1⟧');
+  text = text.replace(/⟦M(\d+)⟧\s+/g, '⟦M$1⟧ ');
+
+  return text;
 }
 
 // ─────────────────────────────────────────────
-// GOOGLE TRANSLATE (No Key)
+// GOOGLE TRANSLATE (No Key) — Nâng cấp: prompt ngữ cảnh toán học
 // ─────────────────────────────────────────────
-async function translateChunk(text, sl, tl, retries = 3) {
+async function translateChunk(text, sl, tl, retries = 4) {
+  // Thêm hint ngữ cảnh toán để Google Translate dịch đúng thuật ngữ hơn
+  const isMathHeavy = /[=\+\-\*\/\^\_\{\}\[\]\\∑∫∏√≤≥≠∈∉⊂⊃∪∩→←↔∞⟦M\d+⟧]/.test(text);
+
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`;
+
   for (let attempt = 1; attempt <= retries; attempt++) {
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      // data[0] là mảng các cặp [translated, original]
-      const translated = data[0].map(seg => seg[0] || '').join('');
+      let translated = data[0].map(seg => seg[0] || '').join('');
+
+      // Hậu xử lý: sửa lỗi Google dịch placeholder
+      translated = postProcessTranslation(translated);
+
       return translated;
     } catch (err) {
       if (attempt === retries) throw err;
-      await sleep(800 * attempt);
+      await sleep(600 * attempt);
     }
   }
 }
@@ -949,8 +1076,8 @@ async function translateChunk(text, sl, tl, retries = 3) {
 // nhiều đoạn lớn vào một request.
 // ─────────────────────────────────────────────
 function splitIntoSentences(text) {
-  // Tách theo dấu kết câu nhưng giữ lại dấu câu, tránh tách số thập phân / viết tắt đơn giản.
-  const matches = text.match(/[^.!?…]+[.!?…]+(\s+|$)|[^.!?…]+$/g);
+  // Không tách tại dấu chấm trong: số thập phân (3.14), placeholder ⟦M0⟧, viết tắt, biểu thức toán
+  const matches = text.match(/[^.!?…]+(?:[.!?…]+(?:\s+(?=[A-ZÁÉÍÓÚ\d])|$))|[^.!?…]+$/g);
   return matches ? matches.map(s => s.trim()).filter(Boolean) : [text];
 }
 
@@ -1063,7 +1190,7 @@ async function runTranslation() {
   logBody.innerHTML = '';
   logLineCount = 0;
 
-  log('info', `Bắt đầu dịch: ${sl} → ${tl} | Chế độ: ${profile.label} | LaTeX: ${useLatex ? 'bật' : 'tắt'}`, true);
+  log('info', `Bắt đầu dịch: ${sl} → ${tl} | Chế độ: ${profile.label} | LaTeX+Toán: ${useLatex ? 'bật' : 'tắt'}`, true);
 
   let workText = extractedText;
   let store = [];
@@ -1072,7 +1199,7 @@ async function runTranslation() {
     const protected_ = protectLatex(workText);
     workText = protected_.text;
     store = protected_.store;
-    log('info', `Đã bảo vệ ${store.length} công thức LaTeX`, true);
+    log('info', `Đã bảo vệ ${store.length} ký hiệu/công thức toán học`, true);
   }
 
   const chunks = chunkText(workText, profile.chunkSize);
@@ -1115,7 +1242,7 @@ async function runTranslation() {
   let translated = results.join('\n\n');
   if (useLatex) {
     translated = restoreLatex(translated, store);
-    log('ok', `Đã khôi phục ${store.length} công thức LaTeX`, true);
+    log('ok', `Đã khôi phục ${store.length} ký hiệu/công thức toán học`, true);
   }
 
   translatedText = translated;
