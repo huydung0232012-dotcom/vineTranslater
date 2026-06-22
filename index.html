@@ -1,66 +1,3 @@
-
-function buildTextFromPdfItems(items){
-  const rows=[];
-
-  for(const item of items){
-    if(!item.str || !item.str.trim()) continue;
-
-    const y=item.transform[5];
-    let row=rows.find(r=>Math.abs(r.y-y)<=2.5);
-
-    if(!row){
-      row={y:y,items:[]};
-      rows.push(row);
-    }
-    row.items.push(item);
-  }
-
-  rows.sort((a,b)=>b.y-a.y);
-
-  const lines=[];
-
-  for(const row of rows){
-    row.items.sort((a,b)=>a.transform[4]-b.transform[4]);
-
-    let text="";
-    let prev=null;
-
-    for(const item of row.items){
-      if(prev){
-        const gap=item.transform[4]-(prev.transform[4]+(prev.width||0));
-        const threshold=Math.max(1.5,(prev.width||0)*0.08);
-
-        if(gap>threshold) text+=" ";
-      }
-
-      text+=item.str;
-      prev=item;
-    }
-
-    text=text.trim();
-
-    if(text){
-      lines.push({
-        y:row.y,
-        text:text,
-        math:/[∑∫∏√≤≥≠∞≈]|\\[a-zA-Z]+|\^|_/.test(text)
-      });
-    }
-  }
-
-  const cleaned=[];
-  for(const line of lines){
-    const t=line.text;
-
-    if(t.length<3) continue;
-    if(/^\d+$/.test(t)) continue;
-
-    cleaned.push(t);
-  }
-
-  return cleaned.join("\\n");
-}
-
 <!DOCTYPE html> 
 <html lang="vi">
 <head>
@@ -1029,69 +966,26 @@ async function extractPDF(file) {
 
 // Hậu xử lý dòng: ghép dòng bị ngắt giữa câu (không kết thúc bằng dấu câu)
 function smartMergeLines(text) {
+  const lines = text.split('\n');
+  const result = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) { result.push(''); continue; }
 
-    const lines = text
-        .split('
-')
-        .map(v => v.trimRight());
+    const next = lines[i + 1]?.trim() || '';
+    const endsWithPunct = /[.!?;:,\]\)\}…\u2026]$/.test(line);
+    const nextStartsUpper = /^[A-ZÁÉÍÓÚÀÈÌÒÙÂÊÔƯĂĐ0-9\\\$\∑\∫\∏]/.test(next);
+    const isMathLine = /[=\+\-\*\/\^\_\{\}\[\]\\∑∫∏√≤≥≠∈∉⊂⊃∪∩→←↔∞]/.test(line);
 
-    const result = [];
-    let paragraph = '';
-
-    function isMathLikeLocal(t){
-        const mathSymbols = (t.match(/[∑∫∏√≤≥≠∞≈]/g) || []).length;
-        const latexCmds = (t.match(/\[a-zA-Z]+/g) || []).length;
-        const operators = (t.match(/[=+\-*/^_]/g) || []).length;
-        const letters = (t.match(/[A-Za-zÀ-ỹ]/g) || []).length;
-
-        if (letters > 20 && mathSymbols === 0 && latexCmds === 0) return false;
-        if (letters > 10 && operators < 3) return false;
-
-        return mathSymbols >= 1 || latexCmds >= 1 || operators >= 4;
+    // Không ghép nếu: kết thúc bằng dấu câu, dòng tiếp theo bắt đầu bằng hoa/số, hoặc là dòng toán
+    if (endsWithPunct || nextStartsUpper || isMathLine || !next) {
+      result.push(line);
+    } else {
+      // Ghép dòng này với dòng tiếp theo
+      lines[i + 1] = line + ' ' + next;
     }
-
-    for (const rawLine of lines) {
-        const line = rawLine.trim();
-
-        if (!line) {
-            if (paragraph) {
-                result.push(paragraph);
-                paragraph = '';
-            }
-            result.push('');
-            continue;
-        }
-
-        const looksTitle = /^[A-ZÀ-Ỹ0-9]/.test(line) && line.length < 80;
-        const looksFormula = isMathLikeLocal(line);
-
-        if (looksTitle || looksFormula) {
-            if (paragraph) {
-                result.push(paragraph);
-                paragraph = '';
-            }
-            result.push(line);
-            continue;
-        }
-
-        if (!paragraph) {
-            paragraph = line;
-        } else {
-            const prevEndsSentence = /[.!?;:…]$/.test(paragraph);
-
-            if (!prevEndsSentence) {
-                paragraph += ' ' + line;
-            } else {
-                result.push(paragraph);
-                paragraph = line;
-            }
-        }
-    }
-
-    if (paragraph) result.push(paragraph);
-
-    return result.join('
-');
+  }
+  return result.join('\n');
 }
 
 // ─────────────────────────────────────────────
