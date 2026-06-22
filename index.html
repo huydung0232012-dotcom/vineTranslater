@@ -1029,26 +1029,69 @@ async function extractPDF(file) {
 
 // Hậu xử lý dòng: ghép dòng bị ngắt giữa câu (không kết thúc bằng dấu câu)
 function smartMergeLines(text) {
-  const lines = text.split('\n');
-  const result = [];
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) { result.push(''); continue; }
 
-    const next = lines[i + 1]?.trim() || '';
-    const endsWithPunct = /[.!?;:,\]\)\}…\u2026]$/.test(line);
-    const nextStartsUpper = /^[A-ZÁÉÍÓÚÀÈÌÒÙÂÊÔƯĂĐ0-9\\\$\∑\∫\∏]/.test(next);
-    const isMathLine = /[=\+\-\*\/\^\_\{\}\[\]\\∑∫∏√≤≥≠∈∉⊂⊃∪∩→←↔∞]/.test(line);
+    const lines = text
+        .split('
+')
+        .map(v => v.trimRight());
 
-    // Không ghép nếu: kết thúc bằng dấu câu, dòng tiếp theo bắt đầu bằng hoa/số, hoặc là dòng toán
-    if (endsWithPunct || nextStartsUpper || isMathLine || !next) {
-      result.push(line);
-    } else {
-      // Ghép dòng này với dòng tiếp theo
-      lines[i + 1] = line + ' ' + next;
+    const result = [];
+    let paragraph = '';
+
+    function isMathLikeLocal(t){
+        const mathSymbols = (t.match(/[∑∫∏√≤≥≠∞≈]/g) || []).length;
+        const latexCmds = (t.match(/\[a-zA-Z]+/g) || []).length;
+        const operators = (t.match(/[=+\-*/^_]/g) || []).length;
+        const letters = (t.match(/[A-Za-zÀ-ỹ]/g) || []).length;
+
+        if (letters > 20 && mathSymbols === 0 && latexCmds === 0) return false;
+        if (letters > 10 && operators < 3) return false;
+
+        return mathSymbols >= 1 || latexCmds >= 1 || operators >= 4;
     }
-  }
-  return result.join('\n');
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim();
+
+        if (!line) {
+            if (paragraph) {
+                result.push(paragraph);
+                paragraph = '';
+            }
+            result.push('');
+            continue;
+        }
+
+        const looksTitle = /^[A-ZÀ-Ỹ0-9]/.test(line) && line.length < 80;
+        const looksFormula = isMathLikeLocal(line);
+
+        if (looksTitle || looksFormula) {
+            if (paragraph) {
+                result.push(paragraph);
+                paragraph = '';
+            }
+            result.push(line);
+            continue;
+        }
+
+        if (!paragraph) {
+            paragraph = line;
+        } else {
+            const prevEndsSentence = /[.!?;:…]$/.test(paragraph);
+
+            if (!prevEndsSentence) {
+                paragraph += ' ' + line;
+            } else {
+                result.push(paragraph);
+                paragraph = line;
+            }
+        }
+    }
+
+    if (paragraph) result.push(paragraph);
+
+    return result.join('
+');
 }
 
 // ─────────────────────────────────────────────
