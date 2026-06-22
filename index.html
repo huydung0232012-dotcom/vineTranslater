@@ -10,15 +10,19 @@
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
   :root {
-    --ink:       #0e0f11;
-    --paper:     #f7f6f2;
-    --mid:       #6b6f7a;
-    --rule:      #e2e1db;
+    --ink:       #eef1f5;
+    --bg:        #060708;
+    --bg2:       #0a0c0e;
+    --panel:     #0d0f12;
+    --rule:      #1c2128;
+    --mid:       #7b8493;
     --accent:    #2563ff;
     --accent2:   #ff4f00;
-    --success:   #00b37e;
+    --neon:      #39ff7a;
+    --neon-dim:  #1f7a42;
+    --success:   #00d68f;
     --warn:      #f59e0b;
-    --card:      #ffffff;
+    --err:       #ff4d5e;
     --radius:    12px;
     --mono:      'Space Mono', monospace;
     --sans:      'Space Grotesk', sans-serif;
@@ -30,7 +34,7 @@
 
   body {
     font-family: var(--sans);
-    background: var(--paper);
+    background: var(--bg);
     color: var(--ink);
     min-height: 100vh;
     overflow-x: hidden;
@@ -41,7 +45,7 @@
     position: sticky;
     top: 0;
     z-index: 100;
-    background: rgba(247,246,242,0.88);
+    background: rgba(6,7,8,0.88);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--rule);
     padding: 0 2rem;
@@ -57,14 +61,15 @@
     font-weight: 700;
     font-size: 1.1rem;
     letter-spacing: -0.02em;
+    color: var(--ink);
   }
   .logo-icon {
     width: 32px; height: 32px;
-    background: var(--accent);
+    background: var(--neon);
     border-radius: 8px;
     display: grid;
     place-items: center;
-    color: #fff;
+    color: #061108;
     font-family: var(--mono);
     font-size: 0.7rem;
     font-weight: 700;
@@ -72,8 +77,9 @@
   .badge {
     font-family: var(--mono);
     font-size: 0.65rem;
-    background: var(--success);
-    color: #fff;
+    background: rgba(57,255,122,0.12);
+    color: var(--neon);
+    border: 1px solid rgba(57,255,122,0.35);
     padding: 2px 8px;
     border-radius: 100px;
     letter-spacing: 0.05em;
@@ -100,10 +106,11 @@
     letter-spacing: -0.03em;
     line-height: 1.1;
     margin-bottom: 1rem;
+    color: var(--ink);
   }
   .hero h1 em {
     font-style: normal;
-    color: var(--accent);
+    color: var(--neon);
   }
   .hero p {
     color: var(--mid);
@@ -123,7 +130,7 @@
     font-family: var(--mono);
     font-size: 1.5rem;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--neon);
     display: block;
   }
   .stat-label {
@@ -141,11 +148,11 @@
   }
 
   .card {
-    background: var(--card);
+    background: var(--panel);
     border: 1px solid var(--rule);
     border-radius: var(--radius);
     overflow: hidden;
-    box-shadow: 0 2px 16px rgba(0,0,0,0.06);
+    box-shadow: 0 2px 24px rgba(0,0,0,0.5);
   }
 
   /* ── DROP ZONE ── */
@@ -158,7 +165,7 @@
     position: relative;
   }
   .drop-zone:hover, .drop-zone.drag-over {
-    background: #f0f4ff;
+    background: rgba(57,255,122,0.04);
   }
   .drop-zone input[type=file] {
     position: absolute; inset: 0;
@@ -166,7 +173,8 @@
   }
   .drop-icon {
     width: 56px; height: 56px;
-    background: #eff3ff;
+    background: rgba(57,255,122,0.08);
+    border: 1px solid rgba(57,255,122,0.25);
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto 1rem;
@@ -176,6 +184,7 @@
     font-weight: 600;
     font-size: 1rem;
     margin-bottom: 0.3rem;
+    color: var(--ink);
   }
   .drop-sub {
     font-size: 0.82rem;
@@ -186,7 +195,7 @@
   .file-info {
     display: none;
     padding: 1rem 1.5rem;
-    background: #f0f7ff;
+    background: rgba(37,99,255,0.06);
     border-bottom: 1px solid var(--rule);
     align-items: center;
     gap: 1rem;
@@ -210,6 +219,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    color: var(--ink);
   }
   .file-meta {
     font-size: 0.78rem;
@@ -244,7 +254,7 @@
     border-radius: 8px;
     font-family: var(--sans);
     font-size: 0.9rem;
-    background: var(--paper);
+    background: var(--bg2);
     color: var(--ink);
     appearance: none;
     cursor: pointer;
@@ -252,7 +262,7 @@
   }
   .field select:focus, .field input:focus {
     outline: none;
-    border-color: var(--accent);
+    border-color: var(--neon);
   }
   .select-wrap {
     position: relative;
@@ -290,30 +300,30 @@
     transition: all 0.15s;
   }
   .btn-primary {
-    background: var(--accent);
-    color: #fff;
+    background: var(--neon);
+    color: #061108;
   }
-  .btn-primary:hover:not(:disabled) { background: #1a52e8; transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary:hover:not(:disabled) { background: #5dffa0; transform: translateY(-1px); }
+  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
   .btn-secondary {
     background: transparent;
     color: var(--ink);
     border: 1.5px solid var(--rule);
   }
-  .btn-secondary:hover:not(:disabled) { border-color: var(--ink); }
-  .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-secondary:hover:not(:disabled) { border-color: var(--mid); }
+  .btn-secondary:disabled { opacity: 0.3; cursor: not-allowed; }
   .btn-success {
-    background: var(--success);
+    background: var(--accent2);
     color: #fff;
   }
-  .btn-success:hover { background: #009968; }
+  .btn-success:hover { background: #ff6a26; }
 
   /* ── PROGRESS ── */
   .progress-section {
     display: none;
     padding: 1.2rem 1.5rem;
     border-top: 1px solid var(--rule);
-    background: #fafafa;
+    background: var(--bg2);
   }
   .progress-section.show { display: block; }
 
@@ -332,7 +342,7 @@
   .progress-pct {
     font-size: 0.82rem;
     font-weight: 700;
-    color: var(--accent);
+    color: var(--neon);
     font-family: var(--mono);
   }
   .progress-bar-track {
@@ -344,10 +354,11 @@
   }
   .progress-bar-fill {
     height: 100%;
-    background: var(--accent);
+    background: var(--neon);
     border-radius: 100px;
     width: 0%;
     transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(57,255,122,0.6);
   }
   .progress-detail {
     font-size: 0.75rem;
@@ -356,11 +367,11 @@
     min-height: 1.1em;
   }
 
-  /* ── LOG ── */
+  /* ── TERMINAL LOG (HACKER STYLE) ── */
   .log-section {
     display: none;
     border-top: 1px solid var(--rule);
-    background: #0e0f11;
+    background: #000;
   }
   .log-section.show { display: block; }
   .log-header {
@@ -368,35 +379,63 @@
     align-items: center;
     justify-content: space-between;
     padding: 0.6rem 1.2rem;
-    border-bottom: 1px solid #1e2026;
+    border-bottom: 1px solid #14171b;
   }
+  .log-header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .log-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--neon);
+    box-shadow: 0 0 6px var(--neon);
+    animation: blink 1.1s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
   .log-title {
     font-family: var(--mono);
     font-size: 0.7rem;
-    color: #6b7280;
+    color: var(--neon);
     text-transform: uppercase;
     letter-spacing: 0.08em;
   }
+  .log-cursor-tag {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--mid);
+  }
   .log-body {
-    padding: 0.8rem 1.2rem;
+    padding: 0.9rem 1.2rem;
     font-family: var(--mono);
     font-size: 0.72rem;
-    color: #9ca3af;
-    max-height: 140px;
+    color: var(--neon);
+    max-height: 220px;
     overflow-y: auto;
-    line-height: 1.8;
+    line-height: 1.85;
+    text-shadow: 0 0 6px rgba(57,255,122,0.25);
   }
-  .log-body .ok { color: #00b37e; }
-  .log-body .warn { color: #f59e0b; }
-  .log-body .err { color: #ef4444; }
-  .log-body .info { color: #60a5fa; }
+  .log-body::-webkit-scrollbar { width: 6px; }
+  .log-body::-webkit-scrollbar-thumb { background: var(--neon-dim); border-radius: 3px; }
+  .log-body .ok { color: var(--neon); }
+  .log-body .warn { color: var(--warn); text-shadow: 0 0 6px rgba(245,158,11,0.25); }
+  .log-body .err { color: var(--err); text-shadow: 0 0 6px rgba(255,77,94,0.25); }
+  .log-body .info { color: #6fd3ff; text-shadow: 0 0 6px rgba(111,211,255,0.25); }
+  .log-line { white-space: pre-wrap; word-break: break-word; }
+  .log-line .typed::after {
+    content: '▋';
+    display: inline-block;
+    margin-left: 2px;
+    animation: blink 0.8s steps(1) infinite;
+  }
 
   /* ── RESULT ── */
   .result-section {
     display: none;
     padding: 1.5rem;
     border-top: 1px solid var(--rule);
-    background: #f0fdf4;
+    background: rgba(0,214,143,0.05);
   }
   .result-section.show { display: flex; flex-direction: column; gap: 1rem; }
 
@@ -409,8 +448,8 @@
     gap: 0.5rem;
   }
   .result-preview {
-    background: #fff;
-    border: 1px solid #d1fae5;
+    background: var(--bg2);
+    border: 1px solid var(--rule);
     border-radius: 8px;
     padding: 1rem 1.2rem;
     font-size: 0.85rem;
@@ -451,19 +490,20 @@
     overflow: hidden;
   }
   .how-item {
-    background: var(--card);
+    background: var(--panel);
     padding: 1.4rem;
   }
   .how-num {
     font-family: var(--mono);
     font-size: 0.65rem;
-    color: var(--mid);
+    color: var(--neon);
     margin-bottom: 0.6rem;
   }
   .how-title {
     font-weight: 600;
     font-size: 0.9rem;
     margin-bottom: 0.3rem;
+    color: var(--ink);
   }
   .how-desc {
     font-size: 0.8rem;
@@ -485,8 +525,8 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .spinner {
     width: 14px; height: 14px;
-    border: 2px solid rgba(255,255,255,0.3);
-    border-top-color: #fff;
+    border: 2px solid rgba(6,17,8,0.3);
+    border-top-color: #061108;
     border-radius: 50%;
     animation: spin 0.7s linear infinite;
   }
@@ -496,8 +536,9 @@
     position: fixed;
     bottom: 2rem;
     right: 2rem;
-    background: var(--ink);
-    color: #fff;
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    color: var(--ink);
     padding: 0.75rem 1.2rem;
     border-radius: 8px;
     font-size: 0.85rem;
@@ -524,8 +565,8 @@
 <!-- HERO -->
 <section class="hero">
   <p class="hero-eyebrow">Không cần đăng ký · Không cần API key · Không giới hạn</p>
-  <h1>Dịch PDF <em>ngay lập tức</em><br/>hoàn toàn miễn phí</h1>
-  <p>Tải lên tài liệu PDF của bạn, chọn ngôn ngữ đích, và nhận bản dịch trong vài giây. Công thức LaTeX được bảo toàn hoàn hảo.</p>
+  <h1>Dịch PDF <em>chính xác hơn</em><br/>hoàn toàn miễn phí</h1>
+  <p>Tải lên tài liệu PDF của bạn, chọn ngôn ngữ đích, và nhận bản dịch chất lượng cao. Công thức LaTeX được bảo toàn hoàn hảo.</p>
   <div class="stats-row">
     <div class="stat"><span class="stat-num">∞</span><span class="stat-label">Không giới hạn trang</span></div>
     <div class="stat"><span class="stat-num">$0</span><span class="stat-label">Mãi mãi miễn phí</span></div>
@@ -596,12 +637,12 @@
         </div>
       </div>
       <div class="field">
-        <label>Tốc độ xử lý</label>
+        <label>Chế độ dịch</label>
         <div class="select-wrap">
           <select id="concurrency">
-            <option value="4">Cân bằng (4 luồng)</option>
-            <option value="8" selected>Nhanh (8 luồng)</option>
-            <option value="12">Tối đa (12 luồng)</option>
+            <option value="quality" selected>Chính xác cao (khối nhỏ)</option>
+            <option value="balanced">Cân bằng</option>
+            <option value="fast">Nhanh (khối lớn)</option>
           </select>
         </div>
       </div>
@@ -639,10 +680,14 @@
       <div class="progress-detail" id="progressDetail"></div>
     </div>
 
-    <!-- LOG -->
+    <!-- TERMINAL LOG -->
     <div class="log-section" id="logSection">
       <div class="log-header">
-        <span class="log-title">Nhật ký xử lý</span>
+        <div class="log-header-left">
+          <span class="log-dot"></span>
+          <span class="log-title">translens_engine.exe</span>
+        </div>
+        <span class="log-cursor-tag" id="logCounter">0 dòng</span>
       </div>
       <div class="log-body" id="logBody"></div>
     </div>
@@ -677,13 +722,13 @@
     </div>
     <div class="how-item">
       <div class="how-num">03</div>
-      <div class="how-title">Dịch song song</div>
-      <div class="how-desc">Văn bản được chia thành nhiều khối nhỏ và dịch đồng thời qua nhiều luồng để tối đa tốc độ.</div>
+      <div class="how-title">Dịch theo khối nhỏ</div>
+      <div class="how-desc">Văn bản được chia thành các khối nhỏ theo câu để giữ ngữ cảnh và tăng độ chính xác.</div>
     </div>
     <div class="how-item">
       <div class="how-num">04</div>
       <div class="how-title">Ghép & xuất file</div>
-      <div class="how-desc">Kết quả được ghép lại, LaTeX được khôi phục, và bạn tải về file TXT hoặc PDF hoàn chỉnh.</div>
+      <div class="how-desc">Kết quả được ghép lại, LaTeX được khôi phục, font Unicode được nhúng để xuất PDF không lỗi dấu.</div>
     </div>
   </div>
 </div>
@@ -699,7 +744,21 @@
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const CHUNK_SIZE = 2800; // ký tự mỗi chunk
+// Chế độ dịch: kích thước khối (ký tự) + số luồng song song.
+// Khối nhỏ hơn => Google Translate giữ ngữ cảnh câu tốt hơn => chính xác hơn,
+// đổi lại tốn thêm một ít thời gian (nhiều request hơn). Đây là lựa chọn có
+// chủ đích, không phải để "câu giờ".
+const TRANSLATION_PROFILES = {
+  quality:  { chunkSize: 900,  concurrency: 3, label: 'Chính xác cao' },
+  balanced: { chunkSize: 1600, concurrency: 5, label: 'Cân bằng' },
+  fast:     { chunkSize: 2800, concurrency: 8, label: 'Nhanh' },
+};
+
+// Font Unicode (Noto Sans, có dấu tiếng Việt đầy đủ) dùng để nhúng vào PDF xuất ra.
+// jsPDF mặc định chỉ có Helvetica/Times/Courier — không có glyph dấu tiếng Việt,
+// đây chính là nguyên nhân PDF tải về bị lỗi font ở các ký tự có dấu.
+const PDF_FONT_REGULAR_URL = 'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-400-normal.ttf';
+const PDF_FONT_BOLD_URL    = 'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-700-normal.ttf';
 
 // ─────────────────────────────────────────────
 // STATE
@@ -708,6 +767,7 @@ let pdfFile = null;
 let extractedText = '';
 let translatedText = '';
 let isTranslating = false;
+let pdfFontReady = null; // Promise cache cho font PDF (chỉ tải 1 lần)
 
 // ─────────────────────────────────────────────
 // DOM
@@ -727,14 +787,17 @@ const progressPct     = document.getElementById('progressPct');
 const progressFill    = document.getElementById('progressFill');
 const progressDetail  = document.getElementById('progressDetail');
 
-const logSection = document.getElementById('logSection');
-const logBody    = document.getElementById('logBody');
+const logSection  = document.getElementById('logSection');
+const logBody     = document.getElementById('logBody');
+const logCounter  = document.getElementById('logCounter');
 
 const resultSection  = document.getElementById('resultSection');
 const resultPreview  = document.getElementById('resultPreview');
 const downloadTxtBtn = document.getElementById('downloadTxtBtn');
 const downloadPdfBtn = document.getElementById('downloadPdfBtn');
 const copyBtn        = document.getElementById('copyBtn');
+
+let logLineCount = 0;
 
 // ─────────────────────────────────────────────
 // FILE HANDLING
@@ -834,27 +897,47 @@ async function translateChunk(text, sl, tl, retries = 3) {
 }
 
 // ─────────────────────────────────────────────
-// CHUNK TEXT
+// CHUNK TEXT — ưu tiên chia theo CÂU trước, rồi mới theo đoạn.
+// Khối nhỏ + chia theo ranh giới câu giúp Google Translate không bị
+// "lạc ngữ cảnh" giữa câu, giảm lỗi dịch sai/thiếu so với việc nhồi
+// nhiều đoạn lớn vào một request.
 // ─────────────────────────────────────────────
+function splitIntoSentences(text) {
+  // Tách theo dấu kết câu nhưng giữ lại dấu câu, tránh tách số thập phân / viết tắt đơn giản.
+  const matches = text.match(/[^.!?…]+[.!?…]+(\s+|$)|[^.!?…]+$/g);
+  return matches ? matches.map(s => s.trim()).filter(Boolean) : [text];
+}
+
 function chunkText(text, size) {
   const chunks = [];
   const paragraphs = text.split(/\n{2,}/);
-  let current = '';
+
   for (const para of paragraphs) {
-    if ((current + '\n\n' + para).length > size && current) {
-      chunks.push(current.trim());
-      current = para;
-    } else {
-      current = current ? current + '\n\n' + para : para;
+    if (!para.trim()) continue;
+    if (para.length <= size) {
+      chunks.push(para.trim());
+      continue;
     }
-    // Force-split if a single paragraph is too long
-    if (current.length > size * 1.5) {
-      const subs = splitLong(current, size);
-      subs.forEach((s, i) => { if (i < subs.length - 1) { chunks.push(s); } });
-      current = subs[subs.length - 1];
+    // Đoạn quá dài: chia theo câu, gói nhiều câu liên tiếp vào một khối
+    // miễn không vượt quá `size`, để giữ ngữ cảnh trong cùng một khối dịch.
+    const sentences = splitIntoSentences(para);
+    let current = '';
+    for (const sentence of sentences) {
+      if ((current + ' ' + sentence).trim().length > size && current) {
+        chunks.push(current.trim());
+        current = sentence;
+      } else {
+        current = current ? current + ' ' + sentence : sentence;
+      }
+      // Câu đơn lẻ vẫn quá dài (hiếm, ví dụ văn bản không có dấu câu)
+      if (current.length > size * 1.6) {
+        const subs = splitLong(current, size);
+        subs.forEach((s, i) => { if (i < subs.length - 1) chunks.push(s); });
+        current = subs[subs.length - 1];
+      }
     }
+    if (current.trim()) chunks.push(current.trim());
   }
-  if (current.trim()) chunks.push(current.trim());
   return chunks;
 }
 
@@ -864,7 +947,6 @@ function splitLong(text, size) {
   while (start < text.length) {
     let end = start + size;
     if (end < text.length) {
-      // Try to break at sentence boundary
       const dot = text.lastIndexOf('. ', end);
       if (dot > start + size * 0.5) end = dot + 2;
     }
@@ -872,6 +954,46 @@ function splitLong(text, size) {
     start = end;
   }
   return parts;
+}
+
+// ─────────────────────────────────────────────
+// TERMINAL LOG — kiểu "hacker": chữ chạy ra dần (typewriter),
+// chỉ để phần chờ đỡ nhàm chán, không ảnh hưởng tới thời gian dịch thật.
+// ─────────────────────────────────────────────
+function log(type, msg, animate = false) {
+  logSection.classList.add('show');
+  const ts = new Date().toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  logBody.appendChild(line);
+  logLineCount++;
+  logCounter.textContent = `${logLineCount} dòng`;
+
+  const fullText = `[${ts}] ${msg}`;
+
+  if (!animate) {
+    line.textContent = fullText;
+    logBody.scrollTop = logBody.scrollHeight;
+    return;
+  }
+
+  // Hiệu ứng chạy chữ dần như terminal
+  let i = 0;
+  const speed = 6; // ms / ký tự, đủ nhanh để không làm chậm UX
+  const span = document.createElement('span');
+  span.className = 'typed';
+  line.appendChild(span);
+  function typeStep() {
+    if (i <= fullText.length) {
+      span.textContent = fullText.slice(0, i);
+      i++;
+      logBody.scrollTop = logBody.scrollHeight;
+      setTimeout(typeStep, speed);
+    } else {
+      span.classList.remove('typed');
+    }
+  }
+  typeStep();
 }
 
 // ─────────────────────────────────────────────
@@ -883,7 +1005,8 @@ async function runTranslation() {
 
   const sl = document.getElementById('sourceLang').value;
   const tl = document.getElementById('targetLang').value;
-  const concurrency = parseInt(document.getElementById('concurrency').value);
+  const profileKey = document.getElementById('concurrency').value;
+  const profile = TRANSLATION_PROFILES[profileKey] || TRANSLATION_PROFILES.quality;
   const useLatex = document.getElementById('latexMode').value === '1';
 
   translateBtn.disabled = true;
@@ -892,8 +1015,9 @@ async function runTranslation() {
   logSection.classList.add('show');
   resultSection.classList.remove('show');
   logBody.innerHTML = '';
+  logLineCount = 0;
 
-  log('info', `Bắt đầu dịch: ${sl} → ${tl} | ${concurrency} luồng | LaTeX: ${useLatex ? 'bật' : 'tắt'}`);
+  log('info', `Bắt đầu dịch: ${sl} → ${tl} | Chế độ: ${profile.label} | LaTeX: ${useLatex ? 'bật' : 'tắt'}`, true);
 
   let workText = extractedText;
   let store = [];
@@ -902,11 +1026,11 @@ async function runTranslation() {
     const protected_ = protectLatex(workText);
     workText = protected_.text;
     store = protected_.store;
-    log('info', `Đã bảo vệ ${store.length} công thức LaTeX`);
+    log('info', `Đã bảo vệ ${store.length} công thức LaTeX`, true);
   }
 
-  const chunks = chunkText(workText, CHUNK_SIZE);
-  log('info', `Chia thành ${chunks.length} khối · ~${CHUNK_SIZE} ký tự/khối`);
+  const chunks = chunkText(workText, profile.chunkSize);
+  log('info', `Chia thành ${chunks.length} khối nhỏ theo câu · ~${profile.chunkSize} ký tự/khối · giữ ngữ cảnh`, true);
 
   const results = new Array(chunks.length);
   let done = 0;
@@ -914,7 +1038,7 @@ async function runTranslation() {
 
   setProgress(0, `0 / ${chunks.length} khối`);
 
-  // Process in batches of `concurrency`
+  const concurrency = profile.concurrency;
   for (let i = 0; i < chunks.length; i += concurrency) {
     const batch = chunks.slice(i, i + concurrency);
     const promises = batch.map((chunk, bi) => {
@@ -926,31 +1050,31 @@ async function runTranslation() {
           const pct = Math.round((done / chunks.length) * 100);
           setProgress(pct, `${done} / ${chunks.length} khối`);
           progressDetail.textContent = `Khối ${idx + 1}: ${chunk.slice(0, 60).replace(/\n/g, ' ')}...`;
-          if (done % 10 === 0 || done === chunks.length) {
-            log('ok', `Tiến độ: ${done}/${chunks.length} khối (${pct}%)`);
+          if (done % 5 === 0 || done === chunks.length) {
+            log('ok', `Tiến độ: ${done}/${chunks.length} khối (${pct}%)`, true);
           }
         })
         .catch(err => {
-          results[idx] = chunks[idx]; // Keep original on error
+          results[idx] = chunks[idx]; // Giữ nguyên bản gốc nếu lỗi
           errors++;
           done++;
-          log('warn', `Khối ${idx + 1} lỗi (giữ nguyên bản gốc): ${err.message}`);
+          log('warn', `Khối ${idx + 1} lỗi (giữ nguyên bản gốc): ${err.message}`, true);
         });
     });
     await Promise.all(promises);
-    // Small delay between batches to avoid rate limiting
-    if (i + concurrency < chunks.length) await sleep(120);
+    // Khoảng nghỉ nhỏ giữa các lô để tránh bị giới hạn tốc độ từ Google Translate
+    if (i + concurrency < chunks.length) await sleep(150);
   }
 
   let translated = results.join('\n\n');
   if (useLatex) {
     translated = restoreLatex(translated, store);
-    log('ok', `Đã khôi phục ${store.length} công thức LaTeX`);
+    log('ok', `Đã khôi phục ${store.length} công thức LaTeX`, true);
   }
 
   translatedText = translated;
 
-  log('ok', `Hoàn tất! ${done} khối · ${errors} lỗi · ${translated.length.toLocaleString()} ký tự`);
+  log('ok', `Hoàn tất! ${done} khối · ${errors} lỗi · ${translated.length.toLocaleString()} ký tự`, true);
   setProgress(100, 'Hoàn tất!');
   progressLabel.textContent = 'Hoàn tất!';
 
@@ -966,6 +1090,44 @@ async function runTranslation() {
 }
 
 // ─────────────────────────────────────────────
+// PDF UNICODE FONT (sửa lỗi dấu tiếng Việt khi xuất PDF)
+// ─────────────────────────────────────────────
+async function fetchFontAsBase64(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Không tải được font (HTTP ${res.status})`);
+  const buffer = await res.arrayBuffer();
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+// Tải font Unicode (Noto Sans) một lần, cache lại cho các lần xuất PDF sau.
+// Đây là nguyên nhân chính của lỗi "PDF tải về bị lỗi dấu tiếng Việt":
+// jsPDF mặc định chỉ nhúng font Helvetica/Times/Courier (chuẩn PDF 14 font),
+// các font này không có glyph cho ký tự có dấu (ă, ơ, ư, ố, ...).
+async function ensurePdfFont(doc) {
+  if (!pdfFontReady) {
+    pdfFontReady = (async () => {
+      const [regularB64, boldB64] = await Promise.all([
+        fetchFontAsBase64(PDF_FONT_REGULAR_URL),
+        fetchFontAsBase64(PDF_FONT_BOLD_URL),
+      ]);
+      return { regularB64, boldB64 };
+    })();
+  }
+  const { regularB64, boldB64 } = await pdfFontReady;
+  doc.addFileToVFS('NotoSans-Regular.ttf', regularB64);
+  doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+  doc.addFileToVFS('NotoSans-Bold.ttf', boldB64);
+  doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
+  doc.setFont('NotoSans', 'normal');
+}
+
+// ─────────────────────────────────────────────
 // DOWNLOAD
 // ─────────────────────────────────────────────
 downloadTxtBtn.addEventListener('click', () => {
@@ -976,11 +1138,14 @@ downloadTxtBtn.addEventListener('click', () => {
 
 downloadPdfBtn.addEventListener('click', async () => {
   if (!translatedText) return;
-  downloadPdfBtn.textContent = 'Đang tạo PDF...';
+  downloadPdfBtn.textContent = 'Đang tải font...';
   downloadPdfBtn.disabled = true;
   try {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    await ensurePdfFont(doc);
+    downloadPdfBtn.textContent = 'Đang tạo PDF...';
 
     const margin = 20;
     const pageW = doc.internal.pageSize.getWidth();
@@ -989,13 +1154,14 @@ downloadPdfBtn.addEventListener('click', async () => {
     const lineH = 7;
     let y = margin;
 
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('NotoSans', 'normal');
     doc.setFontSize(11);
 
     const lines = doc.splitTextToSize(translatedText, maxW);
     for (const line of lines) {
       if (y + lineH > pageH - margin) {
         doc.addPage();
+        doc.setFont('NotoSans', 'normal');
         y = margin;
       }
       doc.text(line, margin, y);
@@ -1003,8 +1169,9 @@ downloadPdfBtn.addEventListener('click', async () => {
     }
 
     doc.save(getOutputName('pdf'));
+    log('ok', 'Đã xuất PDF với font Unicode (giữ đúng dấu tiếng Việt)', false);
   } catch(err) {
-    log('err', 'Lỗi tạo PDF: ' + err.message);
+    log('err', 'Lỗi tạo PDF: ' + err.message, false);
     showToast('Lỗi tạo PDF, hãy dùng TXT.');
   }
   downloadPdfBtn.textContent = 'Tải về PDF';
@@ -1041,6 +1208,7 @@ document.getElementById('resetBtn').addEventListener('click', () => {
   logSection.classList.remove('show');
   resultSection.classList.remove('show');
   logBody.innerHTML = '';
+  logLineCount = 0;
   translateBtn.disabled = true;
   resetBtn.disabled = true;
   statusText.textContent = '';
@@ -1061,16 +1229,6 @@ function setProgress(pct, label) {
   progressFill.style.width = pct + '%';
   progressPct.textContent = pct + '%';
   if (label) progressLabel.textContent = label;
-}
-
-function log(type, msg) {
-  logSection.classList.add('show');
-  const ts = new Date().toLocaleTimeString('vi-VN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const line = document.createElement('div');
-  line.className = type;
-  line.textContent = `[${ts}] ${msg}`;
-  logBody.appendChild(line);
-  logBody.scrollTop = logBody.scrollHeight;
 }
 
 function formatSize(bytes) {
