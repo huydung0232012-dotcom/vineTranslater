@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>TransLens — Dịch PDF Miễn Phí</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
@@ -698,7 +698,7 @@
       <div class="result-preview" id="resultPreview"></div>
       <div class="result-actions">
         <button class="btn btn-success" id="downloadTxtBtn">Tải về TXT</button>
-        <button class="btn btn-success" id="downloadPdfBtn">Tải về PDF</button>
+        <button class="btn btn-success" id="downloadPdfBtn">Xuất PDF</button>
         <button class="btn btn-secondary" id="copyBtn">Sao chép</button>
       </div>
     </div>
@@ -745,20 +745,11 @@ pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
 // Chế độ dịch: kích thước khối (ký tự) + số luồng song song.
-// Khối nhỏ hơn => Google Translate giữ ngữ cảnh câu tốt hơn => chính xác hơn,
-// đổi lại tốn thêm một ít thời gian (nhiều request hơn). Đây là lựa chọn có
-// chủ đích, không phải để "câu giờ".
 const TRANSLATION_PROFILES = {
   quality:  { chunkSize: 900,  concurrency: 3, label: 'Chính xác cao' },
   balanced: { chunkSize: 1600, concurrency: 5, label: 'Cân bằng' },
   fast:     { chunkSize: 2800, concurrency: 8, label: 'Nhanh' },
 };
-
-// Font Unicode (Noto Sans, có dấu tiếng Việt đầy đủ) dùng để nhúng vào PDF xuất ra.
-// jsPDF mặc định chỉ có Helvetica/Times/Courier — không có glyph dấu tiếng Việt,
-// đây chính là nguyên nhân PDF tải về bị lỗi font ở các ký tự có dấu.
-const PDF_FONT_REGULAR_URL = 'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-400-normal.ttf';
-const PDF_FONT_BOLD_URL    = 'https://cdn.jsdelivr.net/fontsource/fonts/noto-sans@latest/vietnamese-700-normal.ttf';
 
 // ─────────────────────────────────────────────
 // STATE
@@ -767,7 +758,6 @@ let pdfFile = null;
 let extractedText = '';
 let translatedText = '';
 let isTranslating = false;
-let pdfFontReady = null; // Promise cache cho font PDF (chỉ tải 1 lần)
 
 // ─────────────────────────────────────────────
 // DOM
@@ -1085,46 +1075,8 @@ async function runTranslation() {
   translateBtn.disabled = false;
   isTranslating = false;
 
-  showToast('✓ Dịch xong! Tải về ngay.');
+  showToast('✓ Dịch xong! Xuất PDF hoặc tải TXT.');
   resultSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-// ─────────────────────────────────────────────
-// PDF UNICODE FONT (sửa lỗi dấu tiếng Việt khi xuất PDF)
-// ─────────────────────────────────────────────
-async function fetchFontAsBase64(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Không tải được font (HTTP ${res.status})`);
-  const buffer = await res.arrayBuffer();
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
-}
-
-// Tải font Unicode (Noto Sans) một lần, cache lại cho các lần xuất PDF sau.
-// Đây là nguyên nhân chính của lỗi "PDF tải về bị lỗi dấu tiếng Việt":
-// jsPDF mặc định chỉ nhúng font Helvetica/Times/Courier (chuẩn PDF 14 font),
-// các font này không có glyph cho ký tự có dấu (ă, ơ, ư, ố, ...).
-async function ensurePdfFont(doc) {
-  if (!pdfFontReady) {
-    pdfFontReady = (async () => {
-      const [regularB64, boldB64] = await Promise.all([
-        fetchFontAsBase64(PDF_FONT_REGULAR_URL),
-        fetchFontAsBase64(PDF_FONT_BOLD_URL),
-      ]);
-      return { regularB64, boldB64 };
-    })();
-  }
-  const { regularB64, boldB64 } = await pdfFontReady;
-  doc.addFileToVFS('NotoSans-Regular.ttf', regularB64);
-  doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
-  doc.addFileToVFS('NotoSans-Bold.ttf', boldB64);
-  doc.addFont('NotoSans-Bold.ttf', 'NotoSans', 'bold');
-  doc.setFont('NotoSans', 'normal');
 }
 
 // ─────────────────────────────────────────────
@@ -1136,46 +1088,201 @@ downloadTxtBtn.addEventListener('click', () => {
   downloadBlob(blob, getOutputName('txt'));
 });
 
-downloadPdfBtn.addEventListener('click', async () => {
+// ─────────────────────────────────────────────
+// PDF EXPORT — dùng browser print engine thay vì jsPDF
+// Lý do: jsPDF với font CID Identity-H bị mất glyph tiếng Việt (bug đã biết).
+// Giải pháp: render HTML → window.print() → trình duyệt tự xử lý Unicode
+// hoàn hảo, không phụ thuộc bất kỳ thư viện nào, hỗ trợ mọi ngôn ngữ.
+// ─────────────────────────────────────────────
+downloadPdfBtn.addEventListener('click', () => {
   if (!translatedText) return;
-  downloadPdfBtn.textContent = 'Đang tải font...';
-  downloadPdfBtn.disabled = true;
-  try {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-    await ensurePdfFont(doc);
-    downloadPdfBtn.textContent = 'Đang tạo PDF...';
+  const tl = document.getElementById('targetLang');
+  const langLabel = tl.options[tl.selectedIndex].text;
+  const docName = (pdfFile?.name || 'document').replace(/\.[^.]+$/, '');
+  const now = new Date().toLocaleString('vi-VN');
 
-    const margin = 20;
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-    const maxW = pageW - margin * 2;
-    const lineH = 7;
-    let y = margin;
+  // Escape HTML đặc biệt để tránh XSS trong nội dung
+  const safeText = translatedText
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 
-    doc.setFont('NotoSans', 'normal');
-    doc.setFontSize(11);
+  // Chuyển dòng trống thành paragraph break cho dễ đọc
+  const htmlBody = safeText
+    .split(/\n{2,}/)
+    .map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`)
+    .join('\n');
 
-    const lines = doc.splitTextToSize(translatedText, maxW);
-    for (const line of lines) {
-      if (y + lineH > pageH - margin) {
-        doc.addPage();
-        doc.setFont('NotoSans', 'normal');
-        y = margin;
-      }
-      doc.text(line, margin, y);
-      y += lineH;
+  const printHTML = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>${docName} — ${langLabel}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,400;0,600;1,400&family=Noto+Serif:ital,wght@0,400;0,700;1,400&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: 'Noto Serif', 'Times New Roman', serif;
+      font-size: 11.5pt;
+      line-height: 1.75;
+      color: #111;
+      background: #fff;
+      margin: 0;
+      padding: 0;
     }
 
-    doc.save(getOutputName('pdf'));
-    log('ok', 'Đã xuất PDF với font Unicode (giữ đúng dấu tiếng Việt)', false);
-  } catch(err) {
-    log('err', 'Lỗi tạo PDF: ' + err.message, false);
-    showToast('Lỗi tạo PDF, hãy dùng TXT.');
+    .page-wrap {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 2.5cm 2cm;
+    }
+
+    /* Header tài liệu */
+    .doc-header {
+      border-bottom: 2px solid #222;
+      padding-bottom: 0.7em;
+      margin-bottom: 1.6em;
+    }
+    .doc-title {
+      font-family: 'Noto Sans', sans-serif;
+      font-size: 15pt;
+      font-weight: 600;
+      margin: 0 0 0.2em;
+      color: #111;
+    }
+    .doc-meta {
+      font-family: 'Noto Sans', sans-serif;
+      font-size: 8.5pt;
+      color: #666;
+      letter-spacing: 0.03em;
+    }
+
+    /* Nội dung */
+    p {
+      margin: 0 0 0.85em;
+      text-align: justify;
+      text-justify: inter-character;
+      hyphens: auto;
+      orphans: 3;
+      widows: 3;
+    }
+
+    /* Ngắt trang đẹp */
+    @media print {
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .doc-header { page-break-after: avoid; }
+      p { page-break-inside: avoid; }
+
+      @page {
+        size: A4 portrait;
+        margin: 2.2cm 2cm 2.5cm;
+      }
+      @page :first {
+        margin-top: 1.5cm;
+      }
+
+      /* Đánh số trang */
+      .page-footer {
+        position: fixed;
+        bottom: 0.8cm;
+        width: 100%;
+        text-align: center;
+        font-family: 'Noto Sans', sans-serif;
+        font-size: 8pt;
+        color: #999;
+      }
+    }
+
+    /* Chỉ hiện nút khi xem trên màn hình */
+    .print-btn-bar {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      font-family: 'Noto Sans', sans-serif;
+      font-size: 13px;
+      z-index: 9999;
+      gap: 1rem;
+    }
+    .print-btn-bar span { opacity: 0.7; }
+    .print-btn-bar button {
+      background: #39ff7a;
+      color: #061108;
+      border: none;
+      padding: 8px 22px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      letter-spacing: 0.02em;
+    }
+    .print-btn-bar button:hover { background: #5dffa0; }
+    .print-btn-bar .close-btn {
+      background: transparent;
+      color: #aaa;
+      border: 1px solid #444;
+      padding: 6px 14px;
+    }
+    .print-btn-bar .close-btn:hover { color: #fff; border-color: #888; }
+
+    @media print {
+      .print-btn-bar { display: none; }
+      body { padding-top: 0; }
+    }
+
+    body.has-bar { padding-top: 48px; }
+  </style>
+</head>
+<body class="has-bar">
+
+  <div class="print-btn-bar">
+    <span>${docName} · ${langLabel} · ${now}</span>
+    <div style="display:flex;gap:0.6rem">
+      <button onclick="window.print()">⬇ Lưu PDF / In</button>
+      <button class="close-btn" onclick="window.close()">✕ Đóng</button>
+    </div>
+  </div>
+
+  <div class="page-wrap">
+    <div class="doc-header">
+      <div class="doc-title">${docName}</div>
+      <div class="doc-meta">Ngôn ngữ: ${langLabel} &nbsp;·&nbsp; Xuất lúc: ${now} &nbsp;·&nbsp; TransLens</div>
+    </div>
+    ${htmlBody}
+  </div>
+
+  <div class="page-footer">— TransLens —</div>
+
+  <script>
+    // Tự động mở hộp thoại in sau khi font Google Fonts tải xong
+    // (đợi tối đa 2.5s, sau đó in luôn để không block mãi)
+    const fonts = document.fonts;
+    const timeout = new Promise(r => setTimeout(r, 2500));
+    Promise.race([fonts.ready, timeout]).then(() => {
+      // Không tự động print — để user chủ động nhấn nút
+    });
+  </script>
+</body>
+</html>`;
+
+  const blob = new Blob([printHTML], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  if (!win) {
+    showToast('Trình duyệt chặn popup. Hãy cho phép popup cho trang này.');
+    URL.revokeObjectURL(url);
+    return;
   }
-  downloadPdfBtn.textContent = 'Tải về PDF';
-  downloadPdfBtn.disabled = false;
+  // Giải phóng blob URL sau khi cửa sổ đã tải xong
+  win.addEventListener('load', () => URL.revokeObjectURL(url), { once: true });
+  log('ok', 'Đã mở trang in PDF — nhấn "Lưu PDF / In" để lưu file.', false);
 });
 
 copyBtn.addEventListener('click', () => {
