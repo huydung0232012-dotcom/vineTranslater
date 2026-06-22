@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>TransLens — Dịch PDF Miễn Phí</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
@@ -277,6 +278,7 @@
     color: var(--mid);
     font-size: 0.8rem;
   }
+  .field.full-width { grid-column: 1 / -1; }
 
   /* ── ACTIONS ── */
   .actions {
@@ -595,6 +597,15 @@
 
     <!-- SETTINGS -->
     <div class="settings">
+      <div class="field full-width">
+        <label>Chế độ đọc PDF (Quan trọng)</label>
+        <div class="select-wrap">
+          <select id="ocrMode">
+            <option value="0" selected>Tiêu chuẩn (Nhanh, dùng cho file chuẩn)</option>
+            <option value="1">Quét OCR (Chậm, dùng khi file bị lỗi font/dấu hoặc PDF scan ảnh)</option>
+          </select>
+        </div>
+      </div>
       <div class="field">
         <label>Ngôn ngữ nguồn</label>
         <div class="select-wrap">
@@ -832,17 +843,62 @@ async function handleFile(file) {
 }
 
 async function extractPDF(file) {
+  const useOCR = document.getElementById('ocrMode').value === '1';
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   log('info', `PDF có ${pdf.numPages} trang`);
+
   let fullText = '';
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items.map(item => item.str).join(' ');
-    fullText += pageText + '\n\n';
-    if (i % 10 === 0) log('info', `  Đọc trang ${i}/${pdf.numPages}...`);
+
+  if (!useOCR) {
+    // Chế độ tiêu chuẩn: đọc text layer trực tiếp (nhanh)
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      const pageText = content.items.map(item => item.str).join(' ');
+      fullText += pageText + '\n\n';
+      if (i % 10 === 0) log('info', `  Đọc trang ${i}/${pdf.numPages}...`);
+    }
+    fullText = fullText.trim();
+
+    // Nếu text layer rỗng/lỗi (PDF scan ảnh hoặc font bị hỏng mã hóa),
+    // tự động gợi ý dùng OCR thay vì trả về văn bản rác hoặc trống.
+    if (fullText.replace(/\s/g, '').length < 20) {
+      log('warn', 'Text layer gần như trống — file có thể là PDF scan ảnh hoặc bị lỗi font.');
+      log('warn', 'Hãy chuyển "Chế độ đọc PDF" sang "Quét OCR" rồi tải lại file.');
+    }
+    return fullText;
   }
+
+  // Chế độ OCR: render từng trang thành ảnh rồi nhận diện ký tự bằng Tesseract
+  log('warn', 'Đang khởi tạo Tesseract OCR Engine (lần đầu sẽ tải model, có thể mất chút thời gian)...');
+  statusText.textContent = 'Đang tải OCR engine...';
+  const worker = await Tesseract.createWorker('vie+eng');
+  log('ok', 'OCR Engine sẵn sàng. Bắt đầu quét từng trang thành ảnh...');
+
+  try {
+    for (let i = 1; i <= pdf.numPages; i++) {
+      statusText.textContent = `OCR trang ${i}/${pdf.numPages}...`;
+      log('info', `Đang quét OCR trang ${i}/${pdf.numPages} (máy có thể chạy chậm hơn bình thường)...`);
+
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2.0 }); // scale cao hơn để OCR nhận diện chính xác hơn
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      await page.render({ canvasContext: ctx, viewport }).promise;
+
+      const { data: { text } } = await worker.recognize(canvas);
+      fullText += text + '\n\n';
+
+      canvas.width = 0;
+      canvas.height = 0; // giải phóng bộ nhớ canvas sớm
+    }
+  } finally {
+    await worker.terminate();
+  }
+
   return fullText.trim();
 }
 
@@ -1310,6 +1366,7 @@ function getOutputName(ext) {
 document.getElementById('resetBtn').addEventListener('click', () => {
   pdfFile = null; extractedText = ''; translatedText = '';
   fileInput.value = '';
+  document.getElementById('ocrMode').value = '0';
   fileInfo.classList.remove('show');
   progressSection.classList.remove('show');
   logSection.classList.remove('show');
