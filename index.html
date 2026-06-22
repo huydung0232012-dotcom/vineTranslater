@@ -1,3 +1,66 @@
+
+function buildTextFromPdfItems(items){
+  const rows=[];
+
+  for(const item of items){
+    if(!item.str || !item.str.trim()) continue;
+
+    const y=item.transform[5];
+    let row=rows.find(r=>Math.abs(r.y-y)<=2.5);
+
+    if(!row){
+      row={y:y,items:[]};
+      rows.push(row);
+    }
+    row.items.push(item);
+  }
+
+  rows.sort((a,b)=>b.y-a.y);
+
+  const lines=[];
+
+  for(const row of rows){
+    row.items.sort((a,b)=>a.transform[4]-b.transform[4]);
+
+    let text="";
+    let prev=null;
+
+    for(const item of row.items){
+      if(prev){
+        const gap=item.transform[4]-(prev.transform[4]+(prev.width||0));
+        const threshold=Math.max(1.5,(prev.width||0)*0.08);
+
+        if(gap>threshold) text+=" ";
+      }
+
+      text+=item.str;
+      prev=item;
+    }
+
+    text=text.trim();
+
+    if(text){
+      lines.push({
+        y:row.y,
+        text:text,
+        math:/[∑∫∏√≤≥≠∞≈]|\\[a-zA-Z]+|\^|_/.test(text)
+      });
+    }
+  }
+
+  const cleaned=[];
+  for(const line of lines){
+    const t=line.text;
+
+    if(t.length<3) continue;
+    if(/^\d+$/.test(t)) continue;
+
+    cleaned.push(t);
+  }
+
+  return cleaned.join("\\n");
+}
+
 <!DOCTYPE html> 
 <html lang="vi">
 <head>
