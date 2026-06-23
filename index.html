@@ -1,4 +1,4 @@
-<!DOCTYPE html> 
+<!DOCTYPE html> moi
 <html lang="vi">
 <head>
 <meta charset="UTF-8" />
@@ -6,603 +6,140 @@
 <title>TransLens — Dịch PDF Miễn Phí</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
-
   :root {
-    --ink:       #eef1f5;
-    --bg:        #060708;
-    --bg2:       #0a0c0e;
-    --panel:     #0d0f12;
-    --rule:      #1c2128;
-    --mid:       #7b8493;
-    --accent:    #2563ff;
-    --accent2:   #ff4f00;
-    --neon:      #39ff7a;
-    --neon-dim:  #1f7a42;
-    --success:   #00d68f;
-    --warn:      #f59e0b;
-    --err:       #ff4d5e;
-    --radius:    12px;
-    --mono:      'Space Mono', monospace;
-    --sans:      'Space Grotesk', sans-serif;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    font-family: var(--sans);
-    background: var(--bg);
-    color: var(--ink);
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ── HEADER ── */
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(6,7,8,0.88);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--rule);
-    padding: 0 2rem;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .logo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-weight: 700;
-    font-size: 1.1rem;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-  }
-  .logo-icon {
-    width: 32px; height: 32px;
-    background: var(--neon);
-    border-radius: 8px;
-    display: grid;
-    place-items: center;
-    color: #061108;
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    font-weight: 700;
-  }
-  .badge {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    background: rgba(57,255,122,0.12);
-    color: var(--neon);
-    border: 1px solid rgba(57,255,122,0.35);
-    padding: 2px 8px;
-    border-radius: 100px;
-    letter-spacing: 0.05em;
-  }
-
-  /* ── HERO ── */
-  .hero {
-    padding: 5rem 2rem 3rem;
-    max-width: 760px;
-    margin: 0 auto;
-    text-align: center;
-  }
-  .hero-eyebrow {
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    letter-spacing: 0.12em;
-    color: var(--mid);
-    text-transform: uppercase;
-    margin-bottom: 1.2rem;
-  }
-  .hero h1 {
-    font-size: clamp(2.2rem, 5vw, 3.4rem);
-    font-weight: 700;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    margin-bottom: 1rem;
-    color: var(--ink);
-  }
-  .hero h1 em {
-    font-style: normal;
-    color: var(--neon);
-  }
-  .hero p {
-    color: var(--mid);
-    font-size: 1.05rem;
-    line-height: 1.7;
-    max-width: 520px;
-    margin: 0 auto 2rem;
-  }
-  .stats-row {
-    display: flex;
-    justify-content: center;
-    gap: 2.5rem;
-    flex-wrap: wrap;
-  }
-  .stat { text-align: center; }
-  .stat-num {
-    font-family: var(--mono);
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--neon);
-    display: block;
-  }
-  .stat-label {
-    font-size: 0.75rem;
-    color: var(--mid);
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-  }
-
-  /* ── MAIN CARD ── */
-  .main-wrap {
-    max-width: 860px;
-    margin: 0 auto;
-    padding: 0 1.5rem 4rem;
-  }
-
-  .card {
-    background: var(--panel);
-    border: 1px solid var(--rule);
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: 0 2px 24px rgba(0,0,0,0.5);
-  }
-
-  /* ── DROP ZONE ── */
-  .drop-zone {
-    padding: 3rem 2rem;
-    text-align: center;
-    border-bottom: 1px solid var(--rule);
-    cursor: pointer;
-    transition: background 0.15s;
-    position: relative;
-  }
-  .drop-zone:hover, .drop-zone.drag-over {
-    background: rgba(57,255,122,0.04);
-  }
-  .drop-zone input[type=file] {
-    position: absolute; inset: 0;
-    opacity: 0; cursor: pointer; width: 100%; height: 100%;
-  }
-  .drop-icon {
-    width: 56px; height: 56px;
-    background: rgba(57,255,122,0.08);
-    border: 1px solid rgba(57,255,122,0.25);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto 1rem;
-    font-size: 1.5rem;
-  }
-  .drop-title {
-    font-weight: 600;
-    font-size: 1rem;
-    margin-bottom: 0.3rem;
-    color: var(--ink);
-  }
-  .drop-sub {
-    font-size: 0.82rem;
-    color: var(--mid);
-  }
-
-  /* ── FILE INFO ── */
-  .file-info {
-    display: none;
-    padding: 1rem 1.5rem;
-    background: rgba(37,99,255,0.06);
-    border-bottom: 1px solid var(--rule);
-    align-items: center;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-  .file-info.show { display: flex; }
-  .file-badge {
-    background: var(--accent);
-    color: #fff;
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-weight: 700;
-    flex-shrink: 0;
-  }
-  .file-name {
-    font-size: 0.88rem;
-    font-weight: 500;
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    color: var(--ink);
-  }
-  .file-meta {
-    font-size: 0.78rem;
-    color: var(--mid);
-    font-family: var(--mono);
-    flex-shrink: 0;
-  }
-
-  /* ── SETTINGS ── */
-  .settings {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--rule);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1rem;
-  }
-  @media (max-width: 520px) { .settings { grid-template-columns: 1fr; } }
-
-  .field label {
-    display: block;
-    font-size: 0.78rem;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--mid);
-    margin-bottom: 0.4rem;
-  }
-  .field select, .field input {
-    width: 100%;
-    padding: 0.6rem 0.9rem;
-    border: 1.5px solid var(--rule);
-    border-radius: 8px;
-    font-family: var(--sans);
-    font-size: 0.9rem;
-    background: var(--bg2);
-    color: var(--ink);
-    appearance: none;
-    cursor: pointer;
-    transition: border-color 0.15s;
-  }
-  .field select:focus, .field input:focus {
-    outline: none;
-    border-color: var(--neon);
-  }
-  .select-wrap {
-    position: relative;
-  }
-  .select-wrap::after {
-    content: '▾';
-    position: absolute;
-    right: 0.9rem;
-    top: 50%;
-    transform: translateY(-50%);
-    pointer-events: none;
-    color: var(--mid);
-    font-size: 0.8rem;
-  }
-  .field.full-width { grid-column: 1 / -1; }
-
-  /* ── ACTIONS ── */
-  .actions {
-    padding: 1.2rem 1.5rem;
-    display: flex;
-    gap: 0.8rem;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.65rem 1.4rem;
-    border-radius: 8px;
-    font-family: var(--sans);
-    font-size: 0.88rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: all 0.15s;
-  }
-  .btn-primary {
-    background: var(--neon);
-    color: #061108;
-  }
-  .btn-primary:hover:not(:disabled) { background: #5dffa0; transform: translateY(-1px); }
-  .btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
-  .btn-secondary {
-    background: transparent;
-    color: var(--ink);
-    border: 1.5px solid var(--rule);
-  }
-  .btn-secondary:hover:not(:disabled) { border-color: var(--mid); }
-  .btn-secondary:disabled { opacity: 0.3; cursor: not-allowed; }
-  .btn-success {
-    background: var(--accent2);
-    color: #fff;
-  }
-  .btn-success:hover { background: #ff6a26; }
-
-  /* ── PROGRESS ── */
-  .progress-section {
-    display: none;
-    padding: 1.2rem 1.5rem;
-    border-top: 1px solid var(--rule);
-    background: var(--bg2);
-  }
-  .progress-section.show { display: block; }
-
-  .progress-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.6rem;
-  }
-  .progress-label {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--mid);
-    font-family: var(--mono);
-  }
-  .progress-pct {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--neon);
-    font-family: var(--mono);
-  }
-  .progress-bar-track {
-    height: 6px;
-    background: var(--rule);
-    border-radius: 100px;
-    overflow: hidden;
-    margin-bottom: 0.6rem;
-  }
-  .progress-bar-fill {
-    height: 100%;
-    background: var(--neon);
-    border-radius: 100px;
-    width: 0%;
-    transition: width 0.3s ease;
-    box-shadow: 0 0 8px rgba(57,255,122,0.6);
-  }
-  .progress-detail {
-    font-size: 0.75rem;
-    color: var(--mid);
-    font-family: var(--mono);
-    min-height: 1.1em;
-  }
-
-  /* ── TERMINAL LOG (HACKER STYLE) ── */
-  .log-section {
-    display: none;
-    border-top: 1px solid var(--rule);
-    background: #000;
-  }
-  .log-section.show { display: block; }
-  .log-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.6rem 1.2rem;
-    border-bottom: 1px solid #14171b;
-  }
-  .log-header-left {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .log-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    background: var(--neon);
-    box-shadow: 0 0 6px var(--neon);
-    animation: blink 1.1s ease-in-out infinite;
-  }
-  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
-  .log-title {
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    color: var(--neon);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-  }
-  .log-cursor-tag {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--mid);
-  }
-  .log-body {
-    padding: 0.9rem 1.2rem;
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    color: var(--neon);
-    max-height: 220px;
-    overflow-y: auto;
-    line-height: 1.85;
-    text-shadow: 0 0 6px rgba(57,255,122,0.25);
-  }
-  .log-body::-webkit-scrollbar { width: 6px; }
-  .log-body::-webkit-scrollbar-thumb { background: var(--neon-dim); border-radius: 3px; }
-  .log-body .ok { color: var(--neon); }
-  .log-body .warn { color: var(--warn); text-shadow: 0 0 6px rgba(245,158,11,0.25); }
-  .log-body .err { color: var(--err); text-shadow: 0 0 6px rgba(255,77,94,0.25); }
-  .log-body .info { color: #6fd3ff; text-shadow: 0 0 6px rgba(111,211,255,0.25); }
-  .log-line { white-space: pre-wrap; word-break: break-word; }
-  .log-line .typed::after {
-    content: '▋';
-    display: inline-block;
-    margin-left: 2px;
-    animation: blink 0.8s steps(1) infinite;
-  }
-
-  /* ── RESULT ── */
-  .result-section {
-    display: none;
-    padding: 1.5rem;
-    border-top: 1px solid var(--rule);
-    background: rgba(0,214,143,0.05);
-  }
-  .result-section.show { display: flex; flex-direction: column; gap: 1rem; }
-
-  .result-title {
-    font-weight: 700;
-    font-size: 1rem;
-    color: var(--success);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .result-preview {
-    background: var(--bg2);
-    border: 1px solid var(--rule);
-    border-radius: 8px;
-    padding: 1rem 1.2rem;
-    font-size: 0.85rem;
-    line-height: 1.75;
-    color: var(--ink);
-    max-height: 200px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-  }
-  .result-actions {
-    display: flex;
-    gap: 0.8rem;
-    flex-wrap: wrap;
-  }
-
-  /* ── HOW IT WORKS ── */
-  .how-section {
-    max-width: 860px;
-    margin: 0 auto;
-    padding: 0 1.5rem 5rem;
-  }
-  .section-eyebrow {
-    font-family: var(--mono);
-    font-size: 0.7rem;
-    letter-spacing: 0.12em;
-    color: var(--mid);
-    text-transform: uppercase;
-    margin-bottom: 1rem;
-  }
-  .how-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1px;
-    background: var(--rule);
-    border: 1px solid var(--rule);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-  .how-item {
-    background: var(--panel);
-    padding: 1.4rem;
-  }
-  .how-num {
-    font-family: var(--mono);
-    font-size: 0.65rem;
-    color: var(--neon);
-    margin-bottom: 0.6rem;
-  }
-  .how-title {
-    font-weight: 600;
-    font-size: 0.9rem;
-    margin-bottom: 0.3rem;
-    color: var(--ink);
-  }
-  .how-desc {
-    font-size: 0.8rem;
-    color: var(--mid);
-    line-height: 1.6;
-  }
-
-  /* ── FOOTER ── */
-  footer {
-    border-top: 1px solid var(--rule);
-    padding: 1.5rem 2rem;
-    text-align: center;
-    font-size: 0.78rem;
-    color: var(--mid);
-    font-family: var(--mono);
-  }
-
-  /* ── SPINNER ── */
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .spinner {
-    width: 14px; height: 14px;
-    border: 2px solid rgba(6,17,8,0.3);
-    border-top-color: #061108;
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-
-  /* ── TOAST ── */
-  #toast {
-    position: fixed;
-    bottom: 2rem;
-    right: 2rem;
-    background: var(--panel);
-    border: 1px solid var(--rule);
-    color: var(--ink);
-    padding: 0.75rem 1.2rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    font-weight: 500;
-    z-index: 999;
-    transform: translateY(120%);
-    transition: transform 0.25s ease;
-    max-width: 300px;
-  }
-  #toast.show { transform: translateY(0); }
+    --ink:#eef1f5;--bg:#060708;--bg2:#0a0c0e;--panel:#0d0f12;--rule:#1c2128;
+    --mid:#7b8493;--accent:#2563ff;--accent2:#ff4f00;--neon:#39ff7a;
+    --neon-dim:#1f7a42;--success:#00d68f;--warn:#f59e0b;--err:#ff4d5e;
+    --radius:12px;--mono:'Space Mono',monospace;--sans:'Space Grotesk',sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--sans);background:var(--bg);color:var(--ink);min-height:100vh;overflow-x:hidden}
+  header{position:sticky;top:0;z-index:100;background:rgba(6,7,8,0.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--rule);padding:0 2rem;height:60px;display:flex;align-items:center;justify-content:space-between}
+  .logo{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.1rem;letter-spacing:-0.02em;color:var(--ink)}
+  .logo-icon{width:32px;height:32px;background:var(--neon);border-radius:8px;display:grid;place-items:center;color:#061108;font-family:var(--mono);font-size:0.7rem;font-weight:700}
+  .badge{font-family:var(--mono);font-size:0.65rem;background:rgba(57,255,122,0.12);color:var(--neon);border:1px solid rgba(57,255,122,0.35);padding:2px 8px;border-radius:100px;letter-spacing:0.05em}
+  .hero{padding:5rem 2rem 3rem;max-width:760px;margin:0 auto;text-align:center}
+  .hero-eyebrow{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.12em;color:var(--mid);text-transform:uppercase;margin-bottom:1.2rem}
+  .hero h1{font-size:clamp(2.2rem,5vw,3.4rem);font-weight:700;letter-spacing:-0.03em;line-height:1.1;margin-bottom:1rem;color:var(--ink)}
+  .hero h1 em{font-style:normal;color:var(--neon)}
+  .hero p{color:var(--mid);font-size:1.05rem;line-height:1.7;max-width:520px;margin:0 auto 2rem}
+  .stats-row{display:flex;justify-content:center;gap:2.5rem;flex-wrap:wrap}
+  .stat{text-align:center}
+  .stat-num{font-family:var(--mono);font-size:1.5rem;font-weight:700;color:var(--neon);display:block}
+  .stat-label{font-size:0.75rem;color:var(--mid);text-transform:uppercase;letter-spacing:0.07em}
+  .main-wrap{max-width:860px;margin:0 auto;padding:0 1.5rem 4rem}
+  .card{background:var(--panel);border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden;box-shadow:0 2px 24px rgba(0,0,0,0.5)}
+  .drop-zone{padding:3rem 2rem;text-align:center;border-bottom:1px solid var(--rule);cursor:pointer;transition:background 0.15s;position:relative}
+  .drop-zone:hover,.drop-zone.drag-over{background:rgba(57,255,122,0.04)}
+  .drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+  .drop-icon{width:56px;height:56px;background:rgba(57,255,122,0.08);border:1px solid rgba(57,255,122,0.25);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.5rem}
+  .drop-title{font-weight:600;font-size:1rem;margin-bottom:0.3rem;color:var(--ink)}
+  .drop-sub{font-size:0.82rem;color:var(--mid)}
+  .file-info{display:none;padding:1rem 1.5rem;background:rgba(37,99,255,0.06);border-bottom:1px solid var(--rule);align-items:center;gap:1rem;flex-wrap:wrap}
+  .file-info.show{display:flex}
+  .file-badge{background:var(--accent);color:#fff;font-family:var(--mono);font-size:0.65rem;padding:3px 8px;border-radius:4px;font-weight:700;flex-shrink:0}
+  .file-name{font-size:0.88rem;font-weight:500;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+  .file-meta{font-size:0.78rem;color:var(--mid);font-family:var(--mono);flex-shrink:0}
+  .settings{padding:1.5rem;border-bottom:1px solid var(--rule);display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+  @media(max-width:520px){.settings{grid-template-columns:1fr}}
+  .field label{display:block;font-size:0.78rem;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;color:var(--mid);margin-bottom:0.4rem}
+  .field select,.field input{width:100%;padding:0.6rem 0.9rem;border:1.5px solid var(--rule);border-radius:8px;font-family:var(--sans);font-size:0.9rem;background:var(--bg2);color:var(--ink);appearance:none;cursor:pointer;transition:border-color 0.15s}
+  .field select:focus,.field input:focus{outline:none;border-color:var(--neon)}
+  .select-wrap{position:relative}
+  .select-wrap::after{content:'▾';position:absolute;right:0.9rem;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--mid);font-size:0.8rem}
+  .field.full-width{grid-column:1/-1}
+  .actions{padding:1.2rem 1.5rem;display:flex;gap:0.8rem;align-items:center;flex-wrap:wrap}
+  .btn{display:inline-flex;align-items:center;gap:0.5rem;padding:0.65rem 1.4rem;border-radius:8px;font-family:var(--sans);font-size:0.88rem;font-weight:600;cursor:pointer;border:none;transition:all 0.15s}
+  .btn-primary{background:var(--neon);color:#061108}
+  .btn-primary:hover:not(:disabled){background:#5dffa0;transform:translateY(-1px)}
+  .btn-primary:disabled{opacity:0.3;cursor:not-allowed}
+  .btn-secondary{background:transparent;color:var(--ink);border:1.5px solid var(--rule)}
+  .btn-secondary:hover:not(:disabled){border-color:var(--mid)}
+  .btn-secondary:disabled{opacity:0.3;cursor:not-allowed}
+  .btn-success{background:var(--accent2);color:#fff}
+  .btn-success:hover{background:#ff6a26}
+  .progress-section{display:none;padding:1.2rem 1.5rem;border-top:1px solid var(--rule);background:var(--bg2)}
+  .progress-section.show{display:block}
+  .progress-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.6rem}
+  .progress-label{font-size:0.82rem;font-weight:600;color:var(--mid);font-family:var(--mono)}
+  .progress-pct{font-size:0.82rem;font-weight:700;color:var(--neon);font-family:var(--mono)}
+  .progress-bar-track{height:6px;background:var(--rule);border-radius:100px;overflow:hidden;margin-bottom:0.6rem}
+  .progress-bar-fill{height:100%;background:var(--neon);border-radius:100px;width:0%;transition:width 0.3s ease;box-shadow:0 0 8px rgba(57,255,122,0.6)}
+  .progress-detail{font-size:0.75rem;color:var(--mid);font-family:var(--mono);min-height:1.1em}
+  .log-section{display:none;border-top:1px solid var(--rule);background:#000}
+  .log-section.show{display:block}
+  .log-header{display:flex;align-items:center;justify-content:space-between;padding:0.6rem 1.2rem;border-bottom:1px solid #14171b}
+  .log-header-left{display:flex;align-items:center;gap:8px}
+  .log-dot{width:7px;height:7px;border-radius:50%;background:var(--neon);box-shadow:0 0 6px var(--neon);animation:blink 1.1s ease-in-out infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
+  .log-title{font-family:var(--mono);font-size:0.7rem;color:var(--neon);text-transform:uppercase;letter-spacing:0.08em}
+  .log-cursor-tag{font-family:var(--mono);font-size:0.65rem;color:var(--mid)}
+  .log-body{padding:0.9rem 1.2rem;font-family:var(--mono);font-size:0.72rem;color:var(--neon);max-height:220px;overflow-y:auto;line-height:1.85;text-shadow:0 0 6px rgba(57,255,122,0.25)}
+  .log-body::-webkit-scrollbar{width:6px}
+  .log-body::-webkit-scrollbar-thumb{background:var(--neon-dim);border-radius:3px}
+  .log-body .ok{color:var(--neon)}
+  .log-body .warn{color:var(--warn);text-shadow:0 0 6px rgba(245,158,11,0.25)}
+  .log-body .err{color:var(--err);text-shadow:0 0 6px rgba(255,77,94,0.25)}
+  .log-body .info{color:#6fd3ff;text-shadow:0 0 6px rgba(111,211,255,0.25)}
+  .log-line{white-space:pre-wrap;word-break:break-word}
+  .log-line .typed::after{content:'▋';display:inline-block;margin-left:2px;animation:blink 0.8s steps(1) infinite}
+  .result-section{display:none;padding:1.5rem;border-top:1px solid var(--rule);background:rgba(0,214,143,0.05)}
+  .result-section.show{display:flex;flex-direction:column;gap:1rem}
+  .result-title{font-weight:700;font-size:1rem;color:var(--success);display:flex;align-items:center;gap:0.5rem}
+  .result-preview{background:var(--bg2);border:1px solid var(--rule);border-radius:8px;padding:1rem 1.2rem;font-size:0.85rem;line-height:1.75;color:var(--ink);max-height:200px;overflow-y:auto;white-space:pre-wrap;word-break:break-word}
+  .result-actions{display:flex;gap:0.8rem;flex-wrap:wrap}
+  .how-section{max-width:860px;margin:0 auto;padding:0 1.5rem 5rem}
+  .section-eyebrow{font-family:var(--mono);font-size:0.7rem;letter-spacing:0.12em;color:var(--mid);text-transform:uppercase;margin-bottom:1rem}
+  .how-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:var(--radius);overflow:hidden}
+  .how-item{background:var(--panel);padding:1.4rem}
+  .how-num{font-family:var(--mono);font-size:0.65rem;color:var(--neon);margin-bottom:0.6rem}
+  .how-title{font-weight:600;font-size:0.9rem;margin-bottom:0.3rem;color:var(--ink)}
+  .how-desc{font-size:0.8rem;color:var(--mid);line-height:1.6}
+  footer{border-top:1px solid var(--rule);padding:1.5rem 2rem;text-align:center;font-size:0.78rem;color:var(--mid);font-family:var(--mono)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{width:14px;height:14px;border:2px solid rgba(6,17,8,0.3);border-top-color:#061108;border-radius:50%;animation:spin 0.7s linear infinite}
+  #toast{position:fixed;bottom:2rem;right:2rem;background:var(--panel);border:1px solid var(--rule);color:var(--ink);padding:0.75rem 1.2rem;border-radius:8px;font-size:0.85rem;font-weight:500;z-index:999;transform:translateY(120%);transition:transform 0.25s ease;max-width:300px}
+  #toast.show{transform:translateY(0)}
 </style>
 </head>
 <body>
-
-<!-- HEADER -->
 <header>
-  <div class="logo">
-    <div class="logo-icon">TL</div>
-    TransLens
-  </div>
+  <div class="logo"><div class="logo-icon">TL</div>TransLens</div>
   <span class="badge">MIỄN PHÍ MÃI MÃI</span>
 </header>
-
-<!-- HERO -->
 <section class="hero">
   <p class="hero-eyebrow">Không cần đăng ký · Không cần API key · Không giới hạn</p>
   <h1>Dịch PDF <em>chính xác hơn</em><br/>hoàn toàn miễn phí</h1>
-  <p>Tải lên tài liệu PDF của bạn, chọn ngôn ngữ đích, và nhận bản dịch chất lượng cao. Công thức LaTeX được bảo toàn hoàn hảo.</p>
+  <p>Tải lên tài liệu PDF của bạn, chọn ngôn ngữ đích, và nhận bản dịch chất lượng cao. Công thức toán học được OCR và bảo toàn hoàn hảo.</p>
   <div class="stats-row">
     <div class="stat"><span class="stat-num">∞</span><span class="stat-label">Không giới hạn trang</span></div>
     <div class="stat"><span class="stat-num">$0</span><span class="stat-label">Mãi mãi miễn phí</span></div>
     <div class="stat"><span class="stat-num">50+</span><span class="stat-label">Ngôn ngữ hỗ trợ</span></div>
   </div>
 </section>
-
-<!-- MAIN -->
 <div class="main-wrap">
   <div class="card">
-
-    <!-- DROP ZONE -->
     <div class="drop-zone" id="dropZone">
       <input type="file" id="fileInput" accept=".pdf,.txt" />
       <div class="drop-icon">📄</div>
       <div class="drop-title">Kéo thả PDF vào đây hoặc bấm để chọn</div>
       <div class="drop-sub">Hỗ trợ PDF và TXT · Mọi kích thước</div>
     </div>
-
-    <!-- FILE INFO -->
     <div class="file-info" id="fileInfo">
       <span class="file-badge">PDF</span>
       <span class="file-name" id="fileName">—</span>
       <span class="file-meta" id="fileMeta">—</span>
     </div>
-
-    <!-- SETTINGS -->
     <div class="settings">
       <div class="field full-width">
-        <label>Chế độ đọc PDF (Quan trọng)</label>
+        <label>Chế độ đọc PDF</label>
         <div class="select-wrap">
           <select id="ocrMode">
-            <option value="0" selected>Tiêu chuẩn (Nhanh, dùng cho file chuẩn)</option>
-            <option value="1">Quét OCR (Chậm, dùng khi file bị lỗi font/dấu hoặc PDF scan ảnh)</option>
+            <option value="0" selected>Tiêu chuẩn + OCR toán (Khuyến nghị)</option>
+            <option value="1">OCR toàn trang (Dùng khi PDF scan ảnh)</option>
           </select>
         </div>
       </div>
@@ -621,9 +158,6 @@
             <option value="de">Deutsch</option>
             <option value="es">Español</option>
             <option value="ru">Русский</option>
-            <option value="ar">العربية</option>
-            <option value="pt">Português</option>
-            <option value="it">Italiano</option>
           </select>
         </div>
       </div>
@@ -641,9 +175,6 @@
             <option value="de">Deutsch</option>
             <option value="es">Español</option>
             <option value="ru">Русский</option>
-            <option value="ar">العربية</option>
-            <option value="pt">Português</option>
-            <option value="it">Italiano</option>
           </select>
         </div>
       </div>
@@ -657,678 +188,528 @@
           </select>
         </div>
       </div>
-      <div class="field">
-        <label>Bảo toàn LaTeX</label>
-        <div class="select-wrap">
-          <select id="latexMode">
-            <option value="1" selected>Bật — giữ công thức</option>
-            <option value="0">Tắt — dịch tất cả</option>
-          </select>
-        </div>
-      </div>
     </div>
-
-    <!-- ACTIONS -->
     <div class="actions">
-      <button class="btn btn-primary" id="translateBtn" disabled>
-        <span>Dịch ngay</span>
-      </button>
-      <button class="btn btn-secondary" id="resetBtn" disabled>
-        Làm lại
-      </button>
+      <button class="btn btn-primary" id="translateBtn" disabled><span>Dịch ngay</span></button>
+      <button class="btn btn-secondary" id="resetBtn" disabled>Làm lại</button>
       <span id="statusText" style="font-size:0.8rem;color:var(--mid);margin-left:auto;font-family:var(--mono)"></span>
     </div>
-
-    <!-- PROGRESS -->
     <div class="progress-section" id="progressSection">
       <div class="progress-header">
         <span class="progress-label" id="progressLabel">Đang xử lý...</span>
         <span class="progress-pct" id="progressPct">0%</span>
       </div>
-      <div class="progress-bar-track">
-        <div class="progress-bar-fill" id="progressFill"></div>
-      </div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="progressFill"></div></div>
       <div class="progress-detail" id="progressDetail"></div>
     </div>
-
-    <!-- TERMINAL LOG -->
     <div class="log-section" id="logSection">
       <div class="log-header">
-        <div class="log-header-left">
-          <span class="log-dot"></span>
-          <span class="log-title">translens_engine.exe</span>
-        </div>
+        <div class="log-header-left"><span class="log-dot"></span><span class="log-title">translens_v3.exe</span></div>
         <span class="log-cursor-tag" id="logCounter">0 dòng</span>
       </div>
       <div class="log-body" id="logBody"></div>
     </div>
-
-    <!-- RESULT -->
     <div class="result-section" id="resultSection">
       <div class="result-title">✓ Dịch hoàn tất</div>
       <div class="result-preview" id="resultPreview"></div>
       <div class="result-actions">
-        <button class="btn btn-success" id="downloadTxtBtn">Tải về TXT</button>
-        <button class="btn btn-success" id="downloadPdfBtn">Xuất PDF</button>
+        <button class="btn btn-success" id="downloadTxtBtn">⬇ Tải về TXT</button>
+        <button class="btn btn-success" id="downloadPdfBtn">⬇ Xuất PDF</button>
         <button class="btn btn-secondary" id="copyBtn">Sao chép</button>
       </div>
     </div>
-
   </div>
 </div>
-
-<!-- HOW IT WORKS -->
 <div class="how-section">
-  <p class="section-eyebrow">Cách hoạt động</p>
+  <p class="section-eyebrow">Cách hoạt động — v3</p>
   <div class="how-grid">
-    <div class="how-item">
-      <div class="how-num">01</div>
-      <div class="how-title">Trích xuất văn bản</div>
-      <div class="how-desc">PDF.js đọc và tách toàn bộ nội dung ngay trên trình duyệt, không upload lên server.</div>
-    </div>
-    <div class="how-item">
-      <div class="how-num">02</div>
-      <div class="how-title">Bảo vệ LaTeX</div>
-      <div class="how-desc">Công thức toán học được tách ra và đánh dấu trước khi dịch để không bao giờ bị hỏng.</div>
-    </div>
-    <div class="how-item">
-      <div class="how-num">03</div>
-      <div class="how-title">Dịch theo khối nhỏ</div>
-      <div class="how-desc">Văn bản được chia thành các khối nhỏ theo câu để giữ ngữ cảnh và tăng độ chính xác.</div>
-    </div>
-    <div class="how-item">
-      <div class="how-num">04</div>
-      <div class="how-title">Ghép & xuất file</div>
-      <div class="how-desc">Kết quả được ghép lại, LaTeX được khôi phục, font Unicode được nhúng để xuất PDF không lỗi dấu.</div>
-    </div>
+    <div class="how-item"><div class="how-num">01</div><div class="how-title">Scan 2 pass</div><div class="how-desc">Pass 1 scan nhanh toàn bộ file, đánh dấu tất cả vùng toán. Pass 2 dịch và OCR song song.</div></div>
+    <div class="how-item"><div class="how-num">02</div><div class="how-title">OCR vùng toán</div><div class="how-desc">Mỗi dòng công thức được crop từ canvas PDF và OCR riêng bằng Tesseract — chạy ngay trên trình duyệt.</div></div>
+    <div class="how-item"><div class="how-num">03</div><div class="how-title">Dịch song song</div><div class="how-desc">Văn bản thường được dịch đồng thời với OCR toán — tận dụng tối đa tốc độ.</div></div>
+    <div class="how-item"><div class="how-num">04</div><div class="how-title">Ghép chính xác</div><div class="how-desc">Kết quả dịch và OCR được ghép đúng vị trí, giữ nguyên thứ tự và bố cục trang.</div></div>
   </div>
 </div>
-
-<footer>TransLens · Hoàn toàn mã nguồn mở · Không lưu dữ liệu của bạn</footer>
-
+<footer>TransLens v3 · Hoàn toàn mã nguồn mở · Không lưu dữ liệu · OCR chạy local</footer>
 <div id="toast"></div>
-
 <script>
-// ─────────────────────────────────────────────
-// CONFIG
-// ─────────────────────────────────────────────
+// ═══════════════════════════════════════════════
+// TRANSLENS v3 — 2-PASS ENGINE
+// Pass 1: Scan toàn bộ → đánh dấu vùng MATH
+// Pass 2: Dịch TEXT + OCR MATH song song
+// ═══════════════════════════════════════════════
+
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-const TRANSLATION_PROFILES = {
-  quality:  { chunkSize: 1800, concurrency: 2, label: 'Chính xác cao' },
-  balanced: { chunkSize: 2800, concurrency: 3, label: 'Cân bằng' },
-  fast:     { chunkSize: 4000, concurrency: 4, label: 'Nhanh' },
+// ── PROFILES ──
+const PROFILES = {
+  quality:  { chunkSize: 1800, concurrency: 2 },
+  balanced: { chunkSize: 2800, concurrency: 3 },
+  fast:     { chunkSize: 4000, concurrency: 4 },
 };
 
-// ─────────────────────────────────────────────
-// STATE
-// ─────────────────────────────────────────────
-let pdfFile = null;
-let extractedText = '';
-let translatedText = '';
-let isTranslating = false;
-let ocrWorker = null; // Tesseract worker dùng chung, khởi tạo 1 lần
+// ── CONSTANTS ──
+const OCR_SCALE = 2.5;
+const GT_MAX    = 4500;
+const MK_PRE    = 'ZZM';   // math placeholder prefix — Google Translate bỏ qua
+const MK_SUF    = 'ZZE';   // math placeholder suffix
 
-// ─────────────────────────────────────────────
-// DOM
-// ─────────────────────────────────────────────
-const dropZone     = document.getElementById('dropZone');
-const fileInput    = document.getElementById('fileInput');
-const fileInfo     = document.getElementById('fileInfo');
-const fileName     = document.getElementById('fileName');
-const fileMeta     = document.getElementById('fileMeta');
-const translateBtn = document.getElementById('translateBtn');
-const resetBtn     = document.getElementById('resetBtn');
-const statusText   = document.getElementById('statusText');
-const progressSection = document.getElementById('progressSection');
-const progressLabel   = document.getElementById('progressLabel');
-const progressPct     = document.getElementById('progressPct');
-const progressFill    = document.getElementById('progressFill');
-const progressDetail  = document.getElementById('progressDetail');
-const logSection  = document.getElementById('logSection');
-const logBody     = document.getElementById('logBody');
-const logCounter  = document.getElementById('logCounter');
-const resultSection  = document.getElementById('resultSection');
-const resultPreview  = document.getElementById('resultPreview');
-const downloadTxtBtn = document.getElementById('downloadTxtBtn');
-const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-const copyBtn        = document.getElementById('copyBtn');
-let logLineCount = 0;
+// ── STATE ──
+let pdfFile = null, extractedText = '', translatedText = '', isTranslating = false;
+let ocrWorker = null;
 
-// ─────────────────────────────────────────────
-// FILE HANDLING
-// ─────────────────────────────────────────────
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-dropZone.addEventListener('drop', e => {
-  e.preventDefault(); dropZone.classList.remove('drag-over');
-  if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
-});
-fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+// ── DOM ──
+const $  = id => document.getElementById(id);
+const dz = $('dropZone'), fi = $('fileInput');
+const logBody = $('logBody'), logCtr = $('logCounter');
+let logN = 0;
+
+// ── LOG ──
+function log(type, msg) {
+  $('logSection').classList.add('show');
+  const ts = new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const el = document.createElement('div');
+  el.className = 'log-line ' + type;
+  el.textContent = `[${ts}] ${msg}`;
+  logBody.appendChild(el);
+  logBody.scrollTop = logBody.scrollHeight;
+  logCtr.textContent = `${++logN} dòng`;
+}
+
+function setProgress(pct, label, detail) {
+  $('progressFill').style.width = pct + '%';
+  $('progressPct').textContent = Math.round(pct) + '%';
+  if (label) $('progressLabel').textContent = label;
+  if (detail !== undefined) $('progressDetail').textContent = detail;
+}
+
+// ── FILE HANDLING ──
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+fi.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 
 async function handleFile(file) {
   pdfFile = file;
   const ext = file.name.split('.').pop().toUpperCase();
   document.querySelector('.file-badge').textContent = ext;
-  fileName.textContent = file.name;
-  fileMeta.textContent = formatSize(file.size);
-  fileInfo.classList.add('show');
-  statusText.textContent = 'Đang đọc file...';
-  log('info', `Đọc file: ${file.name} (${formatSize(file.size)})`);
+  $('fileName').textContent = file.name;
+  $('fileMeta').textContent = fmtSize(file.size);
+  $('fileInfo').classList.add('show');
+  $('statusText').textContent = 'Đang đọc...';
+  log('info', `File: ${file.name} (${fmtSize(file.size)})`);
   try {
-    if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-      extractedText = await extractPDF(file);
-    } else {
-      extractedText = await file.text();
-    }
-    const chars = extractedText.length;
-    const words = extractedText.split(/\s+/).filter(Boolean).length;
-    log('ok', `Trích xuất xong: ${chars.toLocaleString()} ký tự, ~${words.toLocaleString()} từ`);
-    statusText.textContent = `${chars.toLocaleString()} ký tự sẵn sàng`;
-    translateBtn.disabled = false;
-    resetBtn.disabled = false;
-  } catch(err) {
-    log('err', 'Lỗi đọc file: ' + err.message);
-    showToast('Không thể đọc file. Hãy thử lại.');
+    extractedText = (file.type === 'application/pdf' || file.name.endsWith('.pdf'))
+      ? await extractPDF(file)
+      : await file.text();
+    log('ok', `Trích xuất xong: ${extractedText.length.toLocaleString()} ký tự`);
+    $('statusText').textContent = `${extractedText.length.toLocaleString()} ký tự`;
+    $('translateBtn').disabled = false;
+    $('resetBtn').disabled = false;
+  } catch(e) {
+    log('err', 'Lỗi đọc file: ' + e.message);
+    showToast('Không thể đọc file!');
   }
 }
 
-// ─────────────────────────────────────────────
+// ══════════════════════════════════════════════
 // PHÁT HIỆN DÒNG TOÁN
-// Dòng được coi là "toán" nếu thoả ≥1 trong các điều kiện:
-//   - Có LaTeX command (\frac, \sum, \int...)
-//   - Tỉ lệ ký hiệu toán / tổng ký tự > 25%
-//   - Toàn ký số và operator, ít chữ cái
-// ─────────────────────────────────────────────
-function isMathLine(lineText) {
-  const t = lineText.trim();
-  if (!t || t.length < 2) return false;
-
+// ══════════════════════════════════════════════
+function isMathLine(t) {
+  if (!t || t.trim().length < 2) return false;
   // LaTeX commands
-  if (/\\(frac|sum|int|prod|lim|sqrt|binom|infty|partial|nabla|alpha|beta|gamma|delta|theta|lambda|mu|pi|sigma|omega|cdot|times|div|leq|geq|neq|approx|equiv|subset|supset|cup|cap|in|notin|forall|exists|mathbb|mathrm|mathbf|text\{|begin\{|end\{)/.test(t)) return true;
+  if (/\\(frac|sum|int|prod|lim|sqrt|binom|infty|partial|nabla|begin|end|alpha|beta|gamma|delta|theta|lambda|sigma|omega|mathbb|mathrm|cdot|times|leq|geq|neq|approx|equiv|subset|cup|cap|forall|exists)/.test(t)) return true;
   if (/\$[^$]+\$|\$\$/.test(t)) return true;
-
-  // Tỉ lệ ký hiệu toán cao
-  const mathChars = (t.match(/[=+\-*/^_{}[\]∑∏∫√≤≥≠∞→←↔≈≡∈∉⊂⊃∪∩∂∇±×÷]/g) || []).length;
-  const letters   = (t.match(/[a-zA-ZÀ-ỹ]/g) || []).length;
-  const total     = t.replace(/\s/g, '').length;
-  if (total > 3 && mathChars / total > 0.25) return true;
-
-  // Dòng kiểu "f(k+1) = 1/(k+1)!" — có hàm + dấu = + biểu thức
-  if (/[a-zA-Z]\s*[\(\[]\s*[^)]+[\)\]]\s*[=<>]/.test(t)) return true;
-
+  // Tỉ lệ ký hiệu toán > 25%
+  const math = (t.match(/[=+\-*/^_{}[\]∑∏∫√≤≥≠∞→←↔≈≡∈∉⊂⊃∪∩∂∇±×÷]/g)||[]).length;
+  const total = t.replace(/\s/g,'').length;
+  if (total > 3 && math/total > 0.25) return true;
+  // Pattern hàm
+  if (/[a-zA-Z_]\s*[\(\[]\s*[^)]{1,30}[\)\]]\s*[=<>]/.test(t)) return true;
   return false;
 }
 
-// ─────────────────────────────────────────────
-// OCR 1 VÙNG NHỎ từ canvas trang PDF
-// Nhận: canvas đã render + tọa độ vùng cần OCR (theo scale)
-// Trả về: text từ Tesseract
-// ─────────────────────────────────────────────
-async function ocrRegion(pageCanvas, x, y, w, h, scale) {
-  // Tạo canvas nhỏ chứa đúng vùng toán
-  const PADDING = 8 * scale; // thêm padding để OCR nhận diện tốt hơn
-  const sx = Math.max(0, x * scale - PADDING);
-  const sy = Math.max(0, pageCanvas.height - (y + h) * scale - PADDING);
-  const sw = Math.min(w * scale + PADDING * 2, pageCanvas.width - sx);
-  const sh = Math.min(h * scale + PADDING * 2, pageCanvas.height - sy);
-
-  if (sw <= 0 || sh <= 0) return '';
-
-  const crop = document.createElement('canvas');
-  crop.width  = sw;
-  crop.height = sh;
-  const ctx = crop.getContext('2d');
-  ctx.fillStyle = '#ffffff';
+// ══════════════════════════════════════════════
+// OCR 1 VÙNG NHỎ
+// ══════════════════════════════════════════════
+async function ocrRegion(pageCanvas, x, y, w, h) {
+  const PAD = 10;
+  // PDF.js: y=0 là đáy trang, canvas: y=0 là đỉnh → cần flip
+  const cH = pageCanvas.height;
+  const sx = Math.max(0, x * OCR_SCALE - PAD);
+  const sy = Math.max(0, cH - (y + h) * OCR_SCALE - PAD);
+  const sw = Math.min(w * OCR_SCALE + PAD*2, pageCanvas.width - sx);
+  const sh = Math.min(h * OCR_SCALE + PAD*2, cH - sy);
+  if (sw <= 2 || sh <= 2) return '';
+  const c = document.createElement('canvas');
+  c.width = sw; c.height = sh;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff';
   ctx.fillRect(0, 0, sw, sh);
   ctx.drawImage(pageCanvas, sx, sy, sw, sh, 0, 0, sw, sh);
-
   try {
-    const { data: { text } } = await ocrWorker.recognize(crop);
-    return text.trim().replace(/\n+/g, ' ');
-  } catch(e) {
-    return '';
-  } finally {
-    crop.width = 0; crop.height = 0;
-  }
+    const { data: { text } } = await ocrWorker.recognize(c);
+    return text.trim().replace(/\n+/g,' ');
+  } catch { return ''; }
+  finally { c.width = 0; c.height = 0; }
 }
 
-// ─────────────────────────────────────────────
-// PDF EXTRACTION — ENGINE MỚI
-// Luồng xử lý mỗi trang:
-//   1. Render trang thành canvas (scale 2.5x)
-//   2. PDF.js getTextContent → gom thành lines
-//   3. Phân loại line: TEXT hoặc MATH
-//   4. LINE TEXT  → giữ text thô để dịch
-//   5. LINE MATH  → crop canvas → OCR → tạo placeholder
-//   6. OCR các vùng toán SONG SONG với dịch text
-// ─────────────────────────────────────────────
-const OCR_SCALE = 2.5; // scale render canvas cho OCR
-const MATH_PLACEHOLDER_PREFIX = 'MATHBLK';
-const MATH_PLACEHOLDER_SUFFIX = 'ENDMATH';
-
+// ══════════════════════════════════════════════
+// PDF EXTRACTION — 2-PASS ENGINE
+// ══════════════════════════════════════════════
 async function extractPDF(file) {
-  const useOCR = document.getElementById('ocrMode').value === '1';
-  const arrayBuffer = await file.arrayBuffer();
+  const useFullOCR = $('ocrMode').value === '1';
+  const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({
-    data: arrayBuffer,
+    data: buf,
     cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
     cMapPacked: true,
   }).promise;
-  log('info', `PDF có ${pdf.numPages} trang`);
+  const N = pdf.numPages;
+  log('info', `PDF ${N} trang — khởi tạo OCR engine...`);
 
-  // Khởi tạo OCR worker 1 lần dùng cho tất cả trang
+  // Khởi tạo OCR worker 1 lần
   if (!ocrWorker) {
-    log('info', 'Khởi tạo OCR engine cho ký hiệu toán...');
     ocrWorker = await Tesseract.createWorker('eng');
-    // Cấu hình Tesseract tối ưu cho công thức toán
     await ocrWorker.setParameters({
       tessedit_char_whitelist: '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ=+−-*/^_()[]{}.,!?<>≤≥≠∑∏∫√∞±×÷≈≡∈∉⊂⊃∪∩∂∇αβγδεζηθλμπσφψωΓΔΘΛΣΦΨΩ ',
     });
     log('ok', 'OCR engine sẵn sàng');
   }
 
-  let fullText = '';
-  let totalMathBlocks = 0;
-
-  if (useOCR) {
-    // Chế độ OCR toàn trang (cũ) — dùng khi PDF scan ảnh
+  // ── OCR TOÀN TRANG (PDF scan ảnh) ──
+  if (useFullOCR) {
     log('warn', 'Chế độ OCR toàn trang...');
-    for (let i = 1; i <= pdf.numPages; i++) {
+    let out = '';
+    for (let i = 1; i <= N; i++) {
       const page = await pdf.getPage(i);
       const vp = page.getViewport({ scale: 3.0 });
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = vp.width; canvas.height = vp.height;
-      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      const cv = document.createElement('canvas');
+      cv.width = vp.width; cv.height = vp.height;
+      const ctx = cv.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0,0,cv.width,cv.height);
       await page.render({ canvasContext: ctx, viewport: vp }).promise;
-      const { data: { text } } = await ocrWorker.recognize(canvas);
-      fullText += text + '\n\n';
-      canvas.width = 0; canvas.height = 0;
-      log('info', `OCR trang ${i}/${pdf.numPages}`);
+      const { data: { text } } = await ocrWorker.recognize(cv);
+      out += cleanText(text) + '\n\n';
+      cv.width = 0; cv.height = 0;
+      if (i % 5 === 0 || i === N) log('info', `OCR trang ${i}/${N}`);
     }
-    return fullText.trim();
+    return out.trim();
   }
 
-  // ── CHẾ ĐỘ THÔNG MINH: text + OCR vùng toán song song ──
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const viewport1x = page.getViewport({ scale: 1.0 });
-    const vpOcr      = page.getViewport({ scale: OCR_SCALE });
+  // ══════════════════════════════════════════
+  // 2-PASS: SCAN → DỊCH+OCR SONG SONG
+  // ══════════════════════════════════════════
 
-    // Render canvas 1 lần cho cả trang (dùng cho OCR các vùng toán)
-    const pageCanvas = document.createElement('canvas');
-    const ctx = pageCanvas.getContext('2d');
-    pageCanvas.width  = vpOcr.width;
-    pageCanvas.height = vpOcr.height;
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-    await page.render({ canvasContext: ctx, viewport: vpOcr }).promise;
+  // ── PASS 1: Scan nhanh toàn bộ file ──
+  log('info', '── PASS 1: Scan toàn bộ file, đánh dấu vùng toán...');
+  setProgress(0, 'Pass 1: Scan file...');
+
+  // pageData[i] = { lines: [{text, x, y, w, h, isMath}], canvas: HTMLCanvasElement }
+  const pageData = [];
+  let totalMath = 0;
+
+  for (let i = 1; i <= N; i++) {
+    const page = await pdf.getPage(i);
+    const vp1  = page.getViewport({ scale: 1.0 });
+    const vpOCR = page.getViewport({ scale: OCR_SCALE });
+
+    // Render canvas (dùng cho OCR sau)
+    const cv = document.createElement('canvas');
+    cv.width = vpOCR.width; cv.height = vpOCR.height;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+    await page.render({ canvasContext: ctx, viewport: vpOCR }).promise;
 
     // Lấy text content
     const content = await page.getTextContent({ includeMarkedContent: false });
     const items = content.items.filter(it => it.str && it.str.trim());
 
-    if (items.length === 0) {
-      pageCanvas.width = 0; pageCanvas.height = 0;
-      fullText += '\n';
-      continue;
-    }
+    if (!items.length) { pageData.push({ lines: [], canvas: cv }); continue; }
 
     // Tính font size trung bình → tolerance gom dòng
-    const fontSizes = items.map(it => Math.abs(it.transform[3]) || 12);
-    const medFS = fontSizes.sort((a,b)=>a-b)[Math.floor(fontSizes.length/2)];
-    const lineTol = medFS * 0.45;
+    const sizes = items.map(it => Math.abs(it.transform[3]) || 12);
+    const medFS = [...sizes].sort((a,b)=>a-b)[Math.floor(sizes.length/2)];
+    const tol = medFS * 0.45;
 
     // Sắp xếp items: top→bottom, left→right
-    items.sort((a, b) => {
+    items.sort((a,b) => {
       const dy = b.transform[5] - a.transform[5];
-      if (Math.abs(dy) > lineTol) return dy;
-      return a.transform[4] - b.transform[4];
+      return Math.abs(dy) > tol ? dy : a.transform[4] - b.transform[4];
     });
 
     // Gom items thành lines
-    const lines = [];
-    let cur = [];
-    let lastY = null;
+    const rawLines = [];
+    let cur = [], lastY = null;
     for (const it of items) {
       const y = it.transform[5];
-      if (lastY === null || Math.abs(y - lastY) <= lineTol) {
-        cur.push(it);
-      } else {
-        if (cur.length) lines.push(cur);
-        cur = [it];
-      }
+      if (lastY === null || Math.abs(y - lastY) <= tol) { cur.push(it); }
+      else { if (cur.length) rawLines.push(cur); cur = [it]; }
       lastY = y;
     }
-    if (cur.length) lines.push(cur);
+    if (cur.length) rawLines.push(cur);
 
-    // Xây dựng text từng line + bounding box
-    const lineData = lines.map(lineItems => {
+    // Build line objects với bounding box
+    const lines = rawLines.map(lineItems => {
       lineItems.sort((a,b) => a.transform[4] - b.transform[4]);
       let text = '';
       for (let j = 0; j < lineItems.length; j++) {
         const it = lineItems[j];
         if (j > 0) {
           const prev = lineItems[j-1];
-          const prevEnd = prev.transform[4] + (prev.width || 0);
-          const gap = it.transform[4] - prevEnd;
+          const gap = it.transform[4] - (prev.transform[4] + (prev.width||0));
           const spW = (prev.width||8) / Math.max(prev.str.length,1);
           if (gap > spW * 0.3) text += ' ';
         }
         text += it.str;
       }
-
-      // Bounding box của line (tọa độ PDF 1x)
+      text = text.trim();
+      // Bounding box
       const xs = lineItems.map(it => it.transform[4]);
       const ys = lineItems.map(it => it.transform[5]);
-      const ws = lineItems.map(it => it.width || 0);
-      const hs = lineItems.map(it => Math.abs(it.transform[3]) || 12);
-      const x = Math.min(...xs);
-      const y = Math.min(...ys);
-      const x2 = Math.max(...xs.map((xi,k) => xi + ws[k]));
-      const h = Math.max(...hs) * 1.4; // thêm margin cao
-
-      return { text: text.trim(), x, y, w: x2 - x, h };
+      const x  = Math.min(...xs);
+      const y  = Math.min(...ys);
+      const x2 = Math.max(...lineItems.map((it,k) => it.transform[4] + (it.width||0)));
+      const h  = Math.max(...lineItems.map(it => Math.abs(it.transform[3])||12)) * 1.5;
+      const math = isMathLine(text);
+      if (math) totalMath++;
+      return { text, x, y, w: x2-x, h, isMath: math };
     }).filter(l => l.text.length > 0);
 
-    // Phân loại: TEXT vs MATH
-    // Chuẩn bị danh sách OCR jobs cho các line toán (chạy song song)
-    const mathJobs = []; // { lineIdx, ocrPromise }
-    const pageTokens = []; // mảng token cho trang này
-
-    let mathCount = 0;
-    for (let li = 0; li < lineData.length; li++) {
-      const { text, x, y, w, h } = lineData[li];
-
-      if (isMathLine(text)) {
-        // Tạo placeholder
-        const id = `${MATH_PLACEHOLDER_PREFIX}${totalMathBlocks}_${MATH_PLACEHOLDER_SUFFIX}`;
-        totalMathBlocks++;
-        mathCount++;
-
-        // Kick off OCR job cho vùng này (không await ngay)
-        const ocrJob = ocrRegion(pageCanvas, x, y, w, h, OCR_SCALE);
-        mathJobs.push({ id, ocrJob });
-        pageTokens.push({ type: 'math', id, ocrJob });
-      } else {
-        pageTokens.push({ type: 'text', text });
-      }
-    }
-
-    // Await tất cả OCR jobs của trang này song song
-    await Promise.all(mathJobs.map(j => j.ocrJob));
-
-    // Ghép thành text trang, math dùng kết quả OCR
-    let pageText = '';
-    let prevType = null;
-    for (const token of pageTokens) {
-      if (token.type === 'text') {
-        if (prevType === 'math') pageText += '\n';
-        pageText += token.text + '\n';
-      } else {
-        // Lấy kết quả OCR đã resolve
-        const ocrResult = await token.ocrJob;
-        pageText += `${token.id}[${ocrResult || token.id}]` + '\n';
-      }
-      prevType = token.type;
-    }
-
-    // Làm sạch + ghép dòng text bị wrap
-    pageText = cleanText(pageText);
-    pageText = smartMergeLines(pageText);
-
-    fullText += pageText + '\n\n';
-
-    // Giải phóng canvas trang
-    pageCanvas.width = 0; pageCanvas.height = 0;
-
-    if (i % 5 === 0 || i === pdf.numPages)
-      log('info', `Đọc trang ${i}/${pdf.numPages} · ${mathCount} vùng toán được OCR`);
+    pageData.push({ lines, canvas: cv });
+    setProgress(Math.round(i/N*40), `Pass 1: ${i}/${N} trang · ${totalMath} vùng toán`);
   }
 
-  if (totalMathBlocks > 0)
-    log('ok', `Tổng: ${totalMathBlocks} vùng toán được OCR độc lập`);
+  log('ok', `Pass 1 xong: ${totalMath} vùng toán trong ${N} trang`);
 
-  fullText = fullText.trim();
-  if (fullText.replace(/\s/g,'').length < 20)
-    log('warn', 'Text layer gần trống. Thử chuyển sang chế độ OCR toàn trang.');
+  // ── PASS 2: Kick off TẤT CẢ OCR jobs ngay + build text ──
+  log('info', '── PASS 2: OCR toán + dịch song song...');
+  setProgress(40, 'Pass 2: Khởi động OCR song song...');
 
-  return fullText;
+  // Tạo danh sách tất cả OCR promises trước
+  const mathMap = {};   // { key: ocrPromise }
+  let mathId = 0;
+
+  // Build final text structure: mỗi trang là mảng tokens
+  const allPageTokens = pageData.map(({ lines, canvas }) => {
+    const tokens = [];
+    for (const line of lines) {
+      if (line.isMath) {
+        const key = `${MK_PRE}${mathId++}${MK_SUF}`;
+        // Kick off OCR ngay — không await
+        mathMap[key] = ocrRegion(canvas, line.x, line.y, line.w, line.h);
+        tokens.push({ type: 'math', key });
+      } else {
+        tokens.push({ type: 'text', text: line.text });
+      }
+    }
+    return tokens;
+  });
+
+  // Giải phóng canvas ngay sau khi đã kick off tất cả OCR jobs của trang đó
+  // (OCR worker đã nhận canvas reference nội bộ rồi)
+  // Không cần giải phóng thủ công — GC sẽ xử lý sau khi promise resolve
+
+  // Build text string: text thường + placeholder cho math
+  let rawText = '';
+  for (const tokens of allPageTokens) {
+    let pageText = '';
+    for (const tok of tokens) {
+      pageText += tok.type === 'text'
+        ? tok.text + '\n'
+        : tok.key + '\n';
+    }
+    rawText += cleanText(pageText) + '\n\n';
+  }
+  rawText = smartMerge(rawText);
+
+  log('info', `Text thô: ${rawText.length.toLocaleString()} ký tự · ${Object.keys(mathMap).length} placeholder toán`);
+  setProgress(50, 'Pass 2: Sẵn sàng dịch + chờ OCR...');
+
+  // Await TẤT CẢ OCR jobs song song (chúng đã chạy từ trước rồi)
+  log('info', `Đang chờ ${Object.keys(mathMap).length} OCR jobs hoàn tất...`);
+  const ocrKeys = Object.keys(mathMap);
+  const ocrResults = await Promise.all(ocrKeys.map(k => mathMap[k]));
+  const ocrMap = {};
+  ocrKeys.forEach((k,i) => { ocrMap[k] = ocrResults[i] || k; });
+  log('ok', `OCR xong: ${ocrKeys.length} vùng toán`);
+
+  // Trả về rawText với placeholder — sẽ được restore sau khi dịch
+  // Lưu ocrMap vào closure để dùng lúc restore
+  window._v3_ocrMap = ocrMap;
+  return rawText.trim();
 }
 
-// Làm sạch text
+// ══════════════════════════════════════════════
+// TEXT PROCESSING
+// ══════════════════════════════════════════════
 function cleanText(text) {
   text = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-  text = text.replace(/ﬁ/g,'fi').replace(/ﬂ/g,'fl').replace(/ﬀ/g,'ff')
-             .replace(/ﬃ/g,'ffi').replace(/ﬄ/g,'ffl');
-  // Xóa dòng chỉ là số trang
-  text = text.split('\n').filter(l => {
-    const t = l.trim();
-    return !t || !/^\d{1,4}$/.test(t);
-  }).join('\n');
-  text = text.replace(/[ \t]{2,}/g, ' ');
-  text = text.replace(/\n{3,}/g, '\n\n');
+  text = text.replace(/ﬁ/g,'fi').replace(/ﬂ/g,'fl').replace(/ﬀ/g,'ff').replace(/ﬃ/g,'ffi').replace(/ﬄ/g,'ffl');
+  text = text.split('\n').filter(l => !/^\d{1,4}$/.test(l.trim()) || !l.trim()).join('\n');
+  text = text.replace(/[ \t]{2,}/g,' ').replace(/\n{3,}/g,'\n\n');
   return text;
 }
 
-// Ghép dòng bị wrap
-function smartMergeLines(text) {
-  const lines = text.split('\n');
-  const result = [];
+function smartMerge(text) {
+  const lines = text.split('\n'), out = [];
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) { result.push(''); continue; }
-    // Không ghép dòng toán
-    if (line.includes(MATH_PLACEHOLDER_PREFIX)) { result.push(line); continue; }
-    const next = lines[i+1]?.trim() || '';
-    const endsWithPunct = /[.!?;:\]\)\}…]$/.test(line);
-    const nextStartsCap = /^[A-ZÁÉÍÓÚ\d]/.test(next);
-    const nextIsMath    = next.includes(MATH_PLACEHOLDER_PREFIX);
-    if (endsWithPunct || nextStartsCap || nextIsMath || !next) {
-      result.push(line);
-    } else {
-      lines[i+1] = line + ' ' + next;
-    }
+    const l = lines[i].trim();
+    if (!l) { out.push(''); continue; }
+    if (l.startsWith(MK_PRE)) { out.push(l); continue; }
+    const next = lines[i+1]?.trim()||'';
+    const endPunct  = /[.!?;:\]\)\}…]$/.test(l);
+    const nextCap   = /^[A-ZÁÉÍÓÚ\d\\]/.test(next);
+    const nextMath  = next.startsWith(MK_PRE);
+    if (endPunct || nextCap || nextMath || !next) { out.push(l); }
+    else { lines[i+1] = l + ' ' + next; }
   }
-  return result.join('\n');
+  return out.join('\n');
 }
 
-// ─────────────────────────────────────────────
-// BẢO VỆ MATH PLACEHOLDER khỏi Google Translate
-// Placeholder đã có dạng MATHBLK0_ENDMATH[ocr text]
-// Khi dịch: tách phần [ocr text] ra, chỉ gửi phần text thường
-// Sau dịch: ghép lại
-// ─────────────────────────────────────────────
-function separateMathFromText(text) {
-  // Tách các placeholder ra khỏi text để không gửi sang Google Translate
-  const mathMap = {};
-  const cleanedText = text.replace(
-    new RegExp(`${MATH_PLACEHOLDER_PREFIX}\\d+_${MATH_PLACEHOLDER_SUFFIX}\\[([^\\]]*?)\\]`, 'g'),
-    (match, ocrText, offset) => {
-      const key = `ZZM${Object.keys(mathMap).length}ZZ`;
-      mathMap[key] = ocrText || match;
-      return key;
-    }
-  );
-  return { cleanedText, mathMap };
+// Tách placeholder khỏi text trước khi gửi Google Translate
+function extractPlaceholders(text) {
+  const tmp = {};
+  const clean = text.replace(new RegExp(`${MK_PRE}\\d+${MK_SUF}`, 'g'), m => {
+    const tk = `ZZPH${Object.keys(tmp).length}ZZ`;
+    tmp[tk] = m; return tk;
+  });
+  return { clean, tmp };
 }
 
-function reinsertMath(translatedText, mathMap) {
-  let result = translatedText;
-  for (const [key, val] of Object.entries(mathMap)) {
-    // Google có thể thêm space hoặc thay đổi nhẹ key → dùng regex linh hoạt
-    result = result.replace(new RegExp(key.replace(/Z/g,'Z\\s*'), 'gi'), val);
+function restorePlaceholders(text, tmp, ocrMap) {
+  // Bước 1: restore tmp → original math placeholder
+  let r = text;
+  for (const [tk, orig] of Object.entries(tmp)) {
+    r = r.replace(new RegExp(tk.replace(/Z/g,'Z\\s*'), 'gi'), orig);
   }
-  return result;
+  // Bước 2: restore math placeholder → OCR result
+  r = r.replace(new RegExp(`${MK_PRE}(\\d+)${MK_SUF}`, 'g'), (m) => ocrMap[m] || m);
+  return r;
 }
 
-// ─────────────────────────────────────────────
+// ══════════════════════════════════════════════
 // GOOGLE TRANSLATE
-// ─────────────────────────────────────────────
-async function translateChunk(text, sl, tl, retries = 4) {
-  if (text.length > 4500) {
-    const half = Math.ceil(text.length / 2);
-    const split = text.lastIndexOf('\n', half) || half;
-    const p1 = await translateChunk(text.slice(0, split), sl, tl, retries);
-    const p2 = await translateChunk(text.slice(split), sl, tl, retries);
+// ══════════════════════════════════════════════
+async function translateChunk(text, sl, tl, retries=4) {
+  if (text.length > GT_MAX) {
+    const half = text.lastIndexOf('\n', Math.ceil(text.length/2)) || Math.ceil(text.length/2);
+    const [p1, p2] = await Promise.all([
+      translateChunk(text.slice(0,half), sl, tl, retries),
+      translateChunk(text.slice(half), sl, tl, retries),
+    ]);
     return p1 + '\n' + p2;
   }
-
   const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`;
-  for (let attempt = 1; attempt <= retries; attempt++) {
+  for (let a=1; a<=retries; a++) {
     try {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const translated = Array.isArray(data[0])
-        ? data[0].map(s => (s && s[0]) ? s[0] : '').join('')
-        : '';
-      if (!translated.trim()) throw new Error('Kết quả trống');
-      return translated;
-    } catch(err) {
-      if (attempt === retries) throw err;
-      await sleep(800 * attempt);
+      const out = Array.isArray(data[0]) ? data[0].map(s=>s&&s[0]?s[0]:'').join('') : '';
+      if (!out.trim()) throw new Error('Kết quả trống');
+      return out;
+    } catch(e) {
+      if (a===retries) throw e;
+      await sleep(800*a);
     }
   }
 }
 
-// ─────────────────────────────────────────────
-// CHUNK TEXT
-// ─────────────────────────────────────────────
 function chunkText(text, maxSize) {
-  const chunks = [];
-  const paragraphs = text.split(/\n{2,}/);
-  let current = '';
-  for (const para of paragraphs) {
-    if (!para.trim()) continue;
-    if (current.length + para.length + 2 > maxSize && current.length > 0) {
-      chunks.push(current.trim());
-      current = '';
-    }
-    if (para.length > maxSize) {
-      const sents = para.match(/[^.!?]+[.!?]+[\s]*/g) || [para];
+  const chunks = [], paras = text.split(/\n{2,}/);
+  let cur = '';
+  for (const p of paras) {
+    if (!p.trim()) continue;
+    if (cur.length + p.length + 2 > maxSize && cur.length > 0) { chunks.push(cur.trim()); cur=''; }
+    if (p.length > maxSize) {
+      const sents = p.match(/[^.!?]+[.!?]+\s*/g)||[p];
       for (const s of sents) {
-        if (current.length + s.length > maxSize && current.length > 0) {
-          chunks.push(current.trim()); current = '';
-        }
-        current += s;
+        if (cur.length+s.length>maxSize&&cur.length>0){chunks.push(cur.trim());cur='';}
+        cur+=s;
       }
-    } else {
-      current += (current ? '\n\n' : '') + para;
-    }
+    } else { cur+=(cur?'\n\n':'')+p; }
   }
-  if (current.trim()) chunks.push(current.trim());
+  if (cur.trim()) chunks.push(cur.trim());
   return chunks;
 }
 
-// ─────────────────────────────────────────────
-// LOG
-// ─────────────────────────────────────────────
-function log(type, msg, animate = false) {
-  logSection.classList.add('show');
-  const ts = new Date().toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-  const line = document.createElement('div');
-  line.className = `log-line ${type}`;
-  logBody.appendChild(line);
-  logLineCount++;
-  logCounter.textContent = `${logLineCount} dòng`;
-  const full = `[${ts}] ${msg}`;
-  if (!animate) { line.textContent = full; logBody.scrollTop = logBody.scrollHeight; return; }
-  let i = 0;
-  const span = document.createElement('span'); span.className = 'typed'; line.appendChild(span);
-  function step() {
-    if (i <= full.length) { span.textContent = full.slice(0,i++); logBody.scrollTop=logBody.scrollHeight; setTimeout(step,6); }
-    else span.classList.remove('typed');
-  }
-  step();
-}
-
-// ─────────────────────────────────────────────
-// TRANSLATE MAIN
-// ─────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// MAIN: RUN TRANSLATION
+// ══════════════════════════════════════════════
 async function runTranslation() {
-  if (isTranslating || !extractedText) return;
+  if (isTranslating||!extractedText) return;
   isTranslating = true;
 
-  const sl = document.getElementById('sourceLang').value;
-  const tl = document.getElementById('targetLang').value;
-  const profileKey = document.getElementById('concurrency').value;
-  const profile = TRANSLATION_PROFILES[profileKey] || TRANSLATION_PROFILES.quality;
+  const sl = $('sourceLang').value;
+  const tl = $('targetLang').value;
+  const profile = PROFILES[$('concurrency').value]||PROFILES.quality;
+  const ocrMap = window._v3_ocrMap || {};
 
-  translateBtn.disabled = true;
-  translateBtn.innerHTML = '<div class="spinner"></div><span>Đang dịch...</span>';
-  progressSection.classList.add('show');
-  logSection.classList.add('show');
-  resultSection.classList.remove('show');
-  logBody.innerHTML = ''; logLineCount = 0;
+  $('translateBtn').disabled = true;
+  $('translateBtn').innerHTML = '<div class="spinner"></div><span>Đang dịch...</span>';
+  $('progressSection').classList.add('show');
+  $('resultSection').classList.remove('show');
+  $('logBody').innerHTML=''; logN=0;
 
-  log('info', `Dịch: ${sl} → ${tl} | ${profile.label}`, true);
+  log('info', `Dịch: ${sl} → ${tl} | chunk ${profile.chunkSize} | concurrency ${profile.concurrency}`);
+  log('info', `OCR map: ${Object.keys(ocrMap).length} vùng toán sẵn sàng`);
 
-  // Tách math placeholders ra khỏi text trước khi dịch
-  const { cleanedText, mathMap } = separateMathFromText(extractedText);
-  const mathCount = Object.keys(mathMap).length;
-  log('info', `Tách ${mathCount} khối toán khỏi text để bảo vệ`, true);
+  // Tách placeholder trước khi chunk + dịch
+  const { clean, tmp } = extractPlaceholders(extractedText);
+  log('info', `Tách ${Object.keys(tmp).length} placeholder khỏi text`);
 
-  const chunks = chunkText(cleanedText, profile.chunkSize);
-  log('info', `Chia ${chunks.length} khối · ~${profile.chunkSize} ký tự/khối`, true);
+  const chunks = chunkText(clean, profile.chunkSize);
+  log('info', `Chia ${chunks.length} khối dịch`);
 
   const results = new Array(chunks.length);
-  let done = 0, errors = 0;
-  setProgress(0, `0 / ${chunks.length} khối`);
+  let done=0, errors=0;
+  setProgress(0, `0/${chunks.length} khối`);
 
-  const concurrency = profile.concurrency;
-  for (let i = 0; i < chunks.length; i += concurrency) {
-    const batch = chunks.slice(i, i + concurrency);
-    const promises = batch.map((chunk, bi) => {
-      const idx = i + bi;
+  const C = profile.concurrency;
+  for (let i=0; i<chunks.length; i+=C) {
+    const batch = chunks.slice(i, i+C);
+    await Promise.all(batch.map((chunk,bi) => {
+      const idx = i+bi;
       return translateChunk(chunk, sl, tl)
         .then(t => {
-          results[idx] = t; done++;
-          setProgress(Math.round(done/chunks.length*100), `${done} / ${chunks.length} khối`);
-          progressDetail.textContent = `Khối ${idx+1}: ${chunk.slice(0,60).replace(/\n/g,' ')}...`;
-          if (done % 5 === 0 || done === chunks.length)
-            log('ok', `Tiến độ: ${done}/${chunks.length} (${Math.round(done/chunks.length*100)}%)`, true);
+          results[idx]=t; done++;
+          setProgress(Math.round(done/chunks.length*100), `${done}/${chunks.length} khối`, chunk.slice(0,50).replace(/\n/g,' ')+'...');
+          if (done%5===0||done===chunks.length) log('ok',`${done}/${chunks.length} khối (${Math.round(done/chunks.length*100)}%)`);
         })
-        .catch(err => {
-          results[idx] = chunks[idx]; errors++; done++;
-          log('warn', `Khối ${idx+1} lỗi, giữ gốc: ${err.message}`, true);
-        });
-    });
-    await Promise.all(promises);
-    if (i + concurrency < chunks.length) await sleep(200);
+        .catch(e => { results[idx]=chunks[idx]; errors++; done++; log('warn',`Khối ${idx+1} lỗi: ${e.message}`); });
+    }));
+    if (i+C < chunks.length) await sleep(200);
   }
 
-  // Ghép kết quả + tái nhúng math từ OCR
-  let translated = results.join('\n\n');
-  translated = reinsertMath(translated, mathMap);
+  // Ghép + restore placeholder → OCR result
+  let out = results.join('\n\n');
+  out = restorePlaceholders(out, tmp, ocrMap);
 
-  translatedText = translated;
-  log('ok', `Hoàn tất! ${done} khối · ${errors} lỗi · ${translated.length.toLocaleString()} ký tự`, true);
-  setProgress(100, 'Hoàn tất!');
+  translatedText = out;
+  log('ok', `Hoàn tất! ${done} khối · ${errors} lỗi · ${out.length.toLocaleString()} ký tự`);
+  setProgress(100, 'Hoàn tất!', '');
 
-  resultPreview.textContent = translated.slice(0,3000) + (translated.length > 3000 ? '\n\n[... xem thêm trong file tải về ...]' : '');
-  resultSection.classList.add('show');
-  translateBtn.innerHTML = '<span>Dịch ngay</span>';
-  translateBtn.disabled = false;
-  isTranslating = false;
+  $('resultPreview').textContent = out.slice(0,3000)+(out.length>3000?'\n\n[... tải file để xem đầy đủ ...]':'');
+  $('resultSection').classList.add('show');
+  $('translateBtn').innerHTML='<span>Dịch ngay</span>';
+  $('translateBtn').disabled=false;
+  isTranslating=false;
   showToast('✓ Dịch xong!');
-  resultSection.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  $('resultSection').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
-// ─────────────────────────────────────────────
-// DOWNLOAD
-// ─────────────────────────────────────────────
-downloadTxtBtn.addEventListener('click', () => {
+// ══════════════════════════════════════════════
+// DOWNLOAD / EXPORT
+// ══════════════════════════════════════════════
+$('downloadTxtBtn').addEventListener('click', () => {
   if (!translatedText) return;
-  downloadBlob(new Blob([translatedText],{type:'text/plain;charset=utf-8'}), getOutputName('txt'));
+  dlBlob(new Blob([translatedText],{type:'text/plain;charset=utf-8'}), outName('txt'));
 });
 
-downloadPdfBtn.addEventListener('click', () => {
+$('downloadPdfBtn').addEventListener('click', () => {
   if (!translatedText) return;
-  const tl = document.getElementById('targetLang');
-  const langLabel = tl.options[tl.selectedIndex].text;
+  const langLabel = $('targetLang').options[$('targetLang').selectedIndex].text;
   const docName = (pdfFile?.name||'document').replace(/\.[^.]+$/,'');
   const now = new Date().toLocaleString('vi-VN');
   const safe = translatedText.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -1336,83 +717,72 @@ downloadPdfBtn.addEventListener('click', () => {
   const html = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>${docName}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Noto+Sans:wght@400;600&display=swap');
-*{box-sizing:border-box}body{font-family:'Noto Serif',serif;font-size:11.5pt;line-height:1.75;color:#111;margin:0;padding:0}
-.pw{max-width:680px;margin:0 auto;padding:2.5cm 2cm}.dh{border-bottom:2px solid #222;padding-bottom:.7em;margin-bottom:1.6em}
-.dt{font-family:'Noto Sans',sans-serif;font-size:15pt;font-weight:600;margin:0 0 .2em}.dm{font-family:'Noto Sans',sans-serif;font-size:8.5pt;color:#666}
-p{margin:0 0 .85em;text-align:justify;hyphens:auto}
-@media print{@page{size:A4 portrait;margin:2.2cm 2cm 2.5cm}.pb{display:none}body{padding-top:0}}
-.pb{position:fixed;top:0;left:0;right:0;background:#1a1a2e;color:#eee;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;font-family:'Noto Sans',sans-serif;font-size:13px;z-index:9999}
-.pb button{background:#39ff7a;color:#061108;border:none;padding:8px 22px;border-radius:6px;font-weight:700;cursor:pointer}
-.pb .cb{background:transparent;color:#aaa;border:1px solid #444}body.hb{padding-top:48px}
+*{box-sizing:border-box}
+body{font-family:'Noto Serif',serif;font-size:11.5pt;line-height:1.8;color:#111;margin:0;padding:0}
+.pw{max-width:680px;margin:0 auto;padding:2.5cm 2cm}
+.dh{border-bottom:2px solid #222;padding-bottom:.7em;margin-bottom:1.6em}
+.dt{font-family:'Noto Sans',sans-serif;font-size:15pt;font-weight:600;margin:0 0 .2em}
+.dm{font-family:'Noto Sans',sans-serif;font-size:8.5pt;color:#666}
+p{margin:0 0 .9em;text-align:justify;hyphens:auto;orphans:3;widows:3}
+@media print{@page{size:A4 portrait;margin:2.2cm 2cm 2.5cm}.pb{display:none!important}body{padding-top:0}}
+.pb{position:fixed;top:0;left:0;right:0;background:#1a1a2e;color:#eee;display:flex;align-items:center;justify-content:space-between;padding:10px 20px;font-family:'Noto Sans',sans-serif;font-size:13px;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,0.5)}
+.pb button{background:#39ff7a;color:#061108;border:none;padding:8px 22px;border-radius:6px;font-weight:700;cursor:pointer;font-size:13px}
+.pb .cb{background:transparent;color:#aaa;border:1px solid #444}
+body.hb{padding-top:50px}
 </style></head><body class="hb">
-<div class="pb"><span>${docName} · ${langLabel} · ${now}</span>
-<div style="display:flex;gap:.6rem"><button onclick="window.print()">⬇ Lưu PDF</button>
-<button class="cb" onclick="window.close()">✕</button></div></div>
-<div class="pw"><div class="dh"><div class="dt">${docName}</div>
-<div class="dm">${langLabel} · ${now} · TransLens</div></div>${body}</div></body></html>`;
+<div class="pb">
+  <span><b>${docName}</b> · ${langLabel} · ${now} · TransLens v3</span>
+  <div style="display:flex;gap:.6rem">
+    <button onclick="window.print()">⬇ Lưu PDF / In</button>
+    <button class="cb" onclick="window.close()">✕ Đóng</button>
+  </div>
+</div>
+<div class="pw">
+  <div class="dh"><div class="dt">${docName}</div><div class="dm">${langLabel} · ${now} · TransLens v3</div></div>
+  ${body}
+</div></body></html>`;
   const blob = new Blob([html],{type:'text/html;charset=utf-8'});
   const url = URL.createObjectURL(blob);
   const win = window.open(url,'_blank');
-  if (!win) { showToast('Cho phép popup để xuất PDF'); URL.revokeObjectURL(url); return; }
+  if (!win){showToast('Cho phép popup để xuất PDF');URL.revokeObjectURL(url);return;}
   win.addEventListener('load',()=>URL.revokeObjectURL(url),{once:true});
 });
 
-copyBtn.addEventListener('click', () => {
+$('copyBtn').addEventListener('click', () => {
   if (!translatedText) return;
   navigator.clipboard.writeText(translatedText).then(()=>showToast('✓ Đã sao chép!')).catch(()=>showToast('Lỗi sao chép'));
 });
 
-// ─────────────────────────────────────────────
+// ══════════════════════════════════════════════
 // RESET
-// ─────────────────────────────────────────────
-document.getElementById('resetBtn').addEventListener('click', async () => {
-  pdfFile = null; extractedText = ''; translatedText = '';
-  fileInput.value = '';
-  document.getElementById('ocrMode').value = '0';
-  fileInfo.classList.remove('show');
-  progressSection.classList.remove('show');
-  logSection.classList.remove('show');
-  resultSection.classList.remove('show');
-  logBody.innerHTML = ''; logLineCount = 0;
-  translateBtn.disabled = true; resetBtn.disabled = true;
-  statusText.textContent = '';
-  progressFill.style.width = '0%';
-  isTranslating = false;
-  translateBtn.innerHTML = '<span>Dịch ngay</span>';
-  // Terminate OCR worker khi reset
-  if (ocrWorker) { await ocrWorker.terminate(); ocrWorker = null; }
+// ══════════════════════════════════════════════
+$('resetBtn').addEventListener('click', async () => {
+  pdfFile=null; extractedText=''; translatedText=''; window._v3_ocrMap={};
+  fi.value='';
+  $('fileInfo').classList.remove('show');
+  $('progressSection').classList.remove('show');
+  $('logSection').classList.remove('show');
+  $('resultSection').classList.remove('show');
+  $('logBody').innerHTML=''; logN=0;
+  $('translateBtn').disabled=true; $('resetBtn').disabled=true;
+  $('statusText').textContent='';
+  $('progressFill').style.width='0%';
+  $('translateBtn').innerHTML='<span>Dịch ngay</span>';
+  isTranslating=false;
+  if (ocrWorker){await ocrWorker.terminate();ocrWorker=null;}
 });
 
-translateBtn.addEventListener('click', runTranslation);
+$('translateBtn').addEventListener('click', runTranslation);
 
-// ─────────────────────────────────────────────
+// ══════════════════════════════════════════════
 // UTILS
-// ─────────────────────────────────────────────
-function setProgress(pct, label) {
-  progressFill.style.width = pct + '%';
-  progressPct.textContent = pct + '%';
-  if (label) progressLabel.textContent = label;
-}
-function formatSize(b) {
-  if (b<1024) return b+' B';
-  if (b<1048576) return (b/1024).toFixed(1)+' KB';
-  return (b/1048576).toFixed(2)+' MB';
-}
-function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
-function downloadBlob(blob, name) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = name; a.click();
-  URL.revokeObjectURL(a.href);
-}
-function getOutputName(ext) {
-  const base = (pdfFile?.name||'document').replace(/\.[^.]+$/,'');
-  return `${base}_${document.getElementById('targetLang').value}.${ext}`;
-}
-const toast = document.getElementById('toast');
-function showToast(msg) {
-  toast.textContent = msg; toast.classList.add('show');
-  setTimeout(()=>toast.classList.remove('show'),3000);
-}
+// ══════════════════════════════════════════════
+function fmtSize(b){return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB';}
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+function dlBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();URL.revokeObjectURL(a.href);}
+function outName(ext){return((pdfFile?.name||'doc').replace(/\.[^.]+$/,''))+'_'+$('targetLang').value+'.'+ext;}
+const toast=$('toast');
+function showToast(msg){toast.textContent=msg;toast.classList.add('show');setTimeout(()=>toast.classList.remove('show'),3000);}
 </script>
 </body>
 </html>
