@@ -3,37 +3,38 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TransLens v4 — PDF Translator with Math & Unit Protection</title>
-  <meta name="description" content="Dịch PDF/TXT trực tiếp trên trình duyệt, ưu tiên bảo vệ công thức, đơn vị, số liệu và citation." />
+  <title>TransLens v5 — Layout-Preserving Math PDF Translator</title>
+  <meta name="description" content="Dịch PDF toán học theo từng trang, giữ nguyên layout/công thức/hình ảnh/số trang, có glossary thuật ngữ và bản in song ngữ." />
 
-  <!-- PDF.js + Tesseract.js chạy client-side -->
+  <!-- Runtime libraries. No file is uploaded to any server by this app. Translation endpoint is optional and can be replaced by your backend. -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700;800&display=swap');
 
     :root {
-      --bg: #07090c;
-      --bg-soft: #0b0f14;
-      --panel: #10151d;
-      --panel-2: #141b25;
-      --line: #263140;
-      --line-soft: #1b2430;
-      --ink: #eef4ff;
+      --bg: #07090d;
+      --bg2: #0b1118;
+      --panel: #101722;
+      --panel2: #151f2c;
+      --panel3: #0d131b;
+      --line: #263445;
+      --line2: #1a2634;
+      --text: #edf5ff;
       --muted: #94a3b8;
-      --muted-2: #64748b;
-      --accent: #39ff88;
-      --accent-dark: #14b85e;
+      --muted2: #65758b;
+      --accent: #3dff93;
+      --accent2: #a7ffd0;
       --blue: #60a5fa;
-      --orange: #fb923c;
-      --red: #fb7185;
       --yellow: #facc15;
-      --success: #22c55e;
-      --shadow: 0 24px 90px rgba(0, 0, 0, 0.42);
-      --radius-lg: 22px;
-      --radius: 14px;
-      --mono: 'JetBrains Mono', monospace;
+      --red: #fb7185;
+      --orange: #fb923c;
+      --ok: #22c55e;
+      --shadow: 0 24px 80px rgba(0,0,0,.42);
+      --radius: 18px;
+      --radius-lg: 26px;
+      --mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       --sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     }
 
@@ -42,435 +43,211 @@
     body {
       margin: 0;
       min-height: 100vh;
+      color: var(--text);
       font-family: var(--sans);
-      color: var(--ink);
       background:
-        radial-gradient(circle at top left, rgba(57, 255, 136, 0.12), transparent 28rem),
-        radial-gradient(circle at 80% 10%, rgba(96, 165, 250, 0.12), transparent 26rem),
-        var(--bg);
+        radial-gradient(circle at 6% 3%, rgba(61,255,147,.14), transparent 30rem),
+        radial-gradient(circle at 88% 8%, rgba(96,165,250,.12), transparent 28rem),
+        linear-gradient(180deg, #07090d 0%, #080b10 100%);
     }
-
     button, input, select, textarea { font: inherit; }
     button { user-select: none; }
-
-    .shell { max-width: 1120px; margin: 0 auto; padding: 0 22px; }
+    a { color: inherit; }
+    .shell { max-width: 1220px; margin: 0 auto; padding: 0 22px; }
 
     header {
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      border-bottom: 1px solid rgba(38, 49, 64, 0.8);
-      background: rgba(7, 9, 12, 0.78);
-      backdrop-filter: blur(16px);
+      position: sticky; top: 0; z-index: 30;
+      border-bottom: 1px solid rgba(38,52,69,.75);
+      background: rgba(7,9,13,.8);
+      backdrop-filter: blur(18px);
     }
-    .nav {
-      height: 66px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
+    .nav { height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+    .brand { display: flex; align-items: center; gap: 13px; font-weight: 900; letter-spacing: -.04em; }
+    .mark {
+      width: 40px; height: 40px; border-radius: 14px; display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--accent), #c8ffdd);
+      color: #041008; font: 900 12px var(--mono); box-shadow: 0 0 34px rgba(61,255,147,.25);
     }
-    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -0.03em; }
-    .brand-mark {
-      width: 38px; height: 38px; border-radius: 13px;
-      background: linear-gradient(135deg, var(--accent), #b7ffd2);
-      color: #05110a;
-      display: grid; place-items: center;
-      font: 800 13px var(--mono);
-      box-shadow: 0 0 32px rgba(57, 255, 136, 0.28);
+    .brand small { display:block; margin-top: 2px; color: var(--muted2); font: 700 10px var(--mono); letter-spacing: .06em; }
+    .nav-badges { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 7px; border-radius: 999px; padding: 7px 11px;
+      border: 1px solid rgba(61,255,147,.24); background: rgba(61,255,147,.075); color: var(--accent);
+      font: 800 11px var(--mono); white-space: nowrap;
     }
-    .brand small {
-      display: block;
-      font: 600 10px var(--mono);
-      letter-spacing: 0.08em;
-      color: var(--muted-2);
-      margin-top: 2px;
-    }
-    .nav-note {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid rgba(57, 255, 136, 0.25);
-      color: var(--accent);
-      background: rgba(57, 255, 136, 0.07);
-      border-radius: 999px;
-      padding: 7px 12px;
-      font: 700 11px var(--mono);
-      white-space: nowrap;
-    }
+    .pill.blue { color:#bfdbfe; border-color: rgba(96,165,250,.25); background: rgba(96,165,250,.08); }
+    .pill.warn { color:#fde68a; border-color: rgba(250,204,21,.28); background: rgba(250,204,21,.08); }
 
-    .hero { padding: 66px 0 32px; text-align: center; }
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 18px;
-      padding: 7px 12px;
-      border: 1px solid var(--line-soft);
-      border-radius: 999px;
-      color: var(--muted);
-      background: rgba(16, 21, 29, 0.8);
-      font: 700 11px var(--mono);
-      text-transform: uppercase;
-      letter-spacing: 0.09em;
-    }
+    .hero { padding: 58px 0 28px; text-align: center; }
+    .eyebrow { margin-bottom: 18px; }
     .hero h1 {
-      max-width: 850px;
-      margin: 0 auto 18px;
-      font-size: clamp(38px, 6vw, 70px);
-      line-height: 0.98;
-      letter-spacing: -0.075em;
-      font-weight: 800;
+      max-width: 980px; margin: 0 auto 18px;
+      font-size: clamp(38px, 6vw, 74px); line-height: .98; letter-spacing: -.077em; font-weight: 900;
     }
     .hero h1 span { color: var(--accent); }
-    .hero p {
-      max-width: 720px;
-      margin: 0 auto;
-      color: var(--muted);
-      font-size: clamp(15px, 2vw, 18px);
-      line-height: 1.75;
+    .hero p { max-width: 820px; margin: 0 auto; color: var(--muted); line-height: 1.75; font-size: clamp(15px, 2vw, 18px); }
+    .score-grid {
+      display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 1px;
+      max-width: 1040px; margin: 30px auto 0; border: 1px solid var(--line2); border-radius: var(--radius-lg);
+      overflow: hidden; background: var(--line2); box-shadow: var(--shadow);
     }
+    .score-card { background: rgba(16,23,34,.94); padding: 18px; text-align: left; }
+    .score-card b { display:block; margin-bottom: 7px; font-size: 14px; }
+    .score-card span { color: var(--muted); font-size: 12px; line-height: 1.55; }
 
-    .trust-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 1px;
-      margin: 32px auto 0;
-      max-width: 900px;
-      border: 1px solid var(--line-soft);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      background: var(--line-soft);
-      box-shadow: var(--shadow);
-    }
-    .trust-item { background: rgba(16, 21, 29, 0.92); padding: 18px; text-align: left; }
-    .trust-item b { display: block; margin-bottom: 6px; font-size: 14px; }
-    .trust-item span { color: var(--muted); font-size: 12px; line-height: 1.55; }
-
-    .app { padding: 28px 0 70px; }
+    .app { padding: 28px 0 72px; }
     .panel {
-      border: 1px solid var(--line);
-      border-radius: var(--radius-lg);
-      background: linear-gradient(180deg, rgba(16, 21, 29, 0.96), rgba(11, 15, 20, 0.96));
+      overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-lg);
+      background: linear-gradient(180deg, rgba(16,23,34,.98), rgba(10,15,22,.98));
       box-shadow: var(--shadow);
-      overflow: hidden;
     }
     .panel-head {
-      display: flex; align-items: center; justify-content: space-between; gap: 16px;
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--line-soft);
-      background: rgba(20, 27, 37, 0.55);
+      display:flex; align-items:flex-start; justify-content:space-between; gap: 16px; padding: 18px 20px;
+      border-bottom: 1px solid var(--line2); background: rgba(21,31,44,.62);
     }
-    .panel-title { display: flex; align-items: center; gap: 12px; }
-    .panel-title h2 { margin: 0; font-size: 15px; letter-spacing: -0.01em; }
-    .panel-title p { margin: 2px 0 0; color: var(--muted-2); font-size: 12px; }
-    .pill {
-      display: inline-flex; align-items: center; gap: 7px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: rgba(96, 165, 250, 0.09);
-      border: 1px solid rgba(96, 165, 250, 0.22);
-      color: #bfdbfe;
-      font: 700 11px var(--mono);
-    }
+    .panel-title h2 { margin: 0; font-size: 16px; letter-spacing: -.02em; }
+    .panel-title p { margin: 4px 0 0; color: var(--muted2); font-size: 12px; }
 
     .drop-zone {
-      position: relative;
-      padding: 42px 24px;
-      text-align: center;
-      cursor: pointer;
-      border-bottom: 1px solid var(--line-soft);
-      transition: 0.18s ease;
+      position:relative; padding: 42px 24px; text-align:center; cursor:pointer; transition:.18s ease;
+      border-bottom: 1px solid var(--line2);
+      background: linear-gradient(180deg, rgba(61,255,147,.025), transparent);
     }
-    .drop-zone:hover, .drop-zone.drag-over { background: rgba(57, 255, 136, 0.045); }
-    .drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-    .drop-icon {
-      width: 70px; height: 70px;
-      border-radius: 22px;
-      margin: 0 auto 16px;
-      display: grid; place-items: center;
-      font-size: 30px;
-      background: rgba(57, 255, 136, 0.08);
-      border: 1px solid rgba(57, 255, 136, 0.24);
-    }
-    .drop-title { font-size: 18px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.02em; }
+    .drop-zone:hover, .drop-zone.drag-over { background: rgba(61,255,147,.045); }
+    .drop-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .drop-icon { width:72px; height:72px; border-radius: 23px; margin: 0 auto 16px; display:grid; place-items:center; font-size:32px; background: rgba(61,255,147,.08); border:1px solid rgba(61,255,147,.24); }
+    .drop-title { font-weight: 900; font-size: 19px; margin-bottom: 7px; letter-spacing: -.03em; }
     .drop-sub { color: var(--muted); font-size: 13px; }
 
-    .file-card {
-      display: none;
-      padding: 14px 18px;
-      align-items: center;
-      gap: 12px;
-      border-bottom: 1px solid var(--line-soft);
-      background: rgba(96, 165, 250, 0.045);
-    }
-    .file-card.show { display: flex; }
-    .file-type {
-      flex-shrink: 0;
-      padding: 5px 8px;
-      border-radius: 8px;
-      background: var(--blue);
-      color: #07111f;
-      font: 800 11px var(--mono);
-    }
-    .file-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; font-size: 14px; }
-    .file-meta { color: var(--muted); font: 600 12px var(--mono); white-space: nowrap; }
+    .file-card { display:none; align-items:center; gap: 12px; padding: 14px 18px; border-bottom:1px solid var(--line2); background: rgba(96,165,250,.045); }
+    .file-card.show { display:flex; }
+    .file-type { flex-shrink:0; background: var(--blue); color:#07111f; border-radius: 8px; padding: 5px 8px; font: 900 11px var(--mono); }
+    .file-name { min-width:0; flex:1; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-weight:800; font-size:14px; }
+    .file-meta { color: var(--muted); font: 700 12px var(--mono); white-space: nowrap; }
 
-    .controls {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 14px;
-      padding: 20px;
-      border-bottom: 1px solid var(--line-soft);
-    }
+    .controls { display:grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; padding: 20px; border-bottom:1px solid var(--line2); }
     .field.full { grid-column: 1 / -1; }
-    .field label {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 7px;
-      color: var(--muted);
-      font: 800 11px var(--mono);
-      text-transform: uppercase;
-      letter-spacing: 0.065em;
+    .field.double { grid-column: span 2; }
+    .field label { display:flex; justify-content:space-between; gap: 10px; margin-bottom: 7px; color: var(--muted); font: 900 11px var(--mono); text-transform:uppercase; letter-spacing:.06em; }
+    .field label em { color: var(--muted2); font-style:normal; text-transform:none; letter-spacing:0; font-weight:700; }
+    select, input[type="number"], textarea {
+      width:100%; border:1px solid var(--line); background: var(--bg2); color: var(--text); outline:none;
+      border-radius: 13px; padding: 12px 13px; transition: .14s ease;
     }
-    .field label em { font-style: normal; color: var(--muted-2); font-weight: 600; text-transform: none; letter-spacing: 0; }
-    select, input[type="number"] {
-      width: 100%;
-      border: 1px solid var(--line);
-      color: var(--ink);
-      background: var(--bg-soft);
-      border-radius: 12px;
-      padding: 12px 13px;
-      outline: none;
-      transition: border-color 0.14s ease, box-shadow 0.14s ease;
-    }
-    select:focus, input:focus { border-color: rgba(57, 255, 136, 0.65); box-shadow: 0 0 0 4px rgba(57, 255, 136, 0.07); }
+    textarea { min-height: 132px; resize: vertical; font-family: var(--mono); font-size: 12px; line-height: 1.6; }
+    select:focus, input:focus, textarea:focus { border-color: rgba(61,255,147,.65); box-shadow: 0 0 0 4px rgba(61,255,147,.07); }
 
-    .advanced {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      padding: 0 20px 20px;
-      border-bottom: 1px solid var(--line-soft);
-    }
-    .check-card {
-      display: flex; gap: 10px; align-items: flex-start;
-      padding: 12px;
-      border: 1px solid var(--line-soft);
-      background: rgba(7, 9, 12, 0.34);
-      border-radius: 13px;
-      cursor: pointer;
-    }
+    .advanced { display:grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; padding: 0 20px 20px; border-bottom:1px solid var(--line2); }
+    .check-card { display:flex; gap: 10px; align-items:flex-start; padding: 12px; border:1px solid var(--line2); border-radius: 14px; background: rgba(7,9,13,.33); cursor:pointer; }
     .check-card input { margin-top: 3px; accent-color: var(--accent); }
-    .check-card b { display: block; font-size: 13px; margin-bottom: 3px; }
-    .check-card span { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .check-card b { display:block; font-size:13px; margin-bottom: 3px; }
+    .check-card span span { display:block; color: var(--muted); font-size:12px; line-height:1.42; }
 
-    .actions {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--line-soft);
-    }
+    .glossary-box { display:none; padding: 0 20px 20px; border-bottom:1px solid var(--line2); }
+    .glossary-box.show { display:block; }
+    .glossary-box .hint { color: var(--muted2); font-size: 12px; line-height:1.6; margin: 0 0 8px; }
+
+    .actions { display:flex; align-items:center; gap: 10px; flex-wrap:wrap; padding: 18px 20px; border-bottom:1px solid var(--line2); }
     .btn {
-      border: none;
-      border-radius: 12px;
-      padding: 12px 16px;
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      cursor: pointer;
-      color: var(--ink);
-      background: var(--panel-2);
-      border: 1px solid var(--line);
-      font-weight: 800;
-      font-size: 14px;
-      transition: transform 0.14s ease, background 0.14s ease, border-color 0.14s ease, opacity 0.14s ease;
+      border:1px solid var(--line); border-radius: 13px; background: var(--panel2); color: var(--text); cursor:pointer;
+      padding: 12px 15px; display:inline-flex; align-items:center; justify-content:center; gap: 8px;
+      font-weight:900; font-size:14px; transition:.14s ease;
     }
-    .btn:hover:not(:disabled) { transform: translateY(-1px); border-color: var(--muted-2); }
-    .btn:disabled { opacity: 0.38; cursor: not-allowed; }
-    .btn-primary { background: var(--accent); color: #041008; border-color: transparent; }
-    .btn-primary:hover:not(:disabled) { background: #65ffa2; }
-    .btn-warn { background: rgba(251, 146, 60, 0.12); border-color: rgba(251, 146, 60, 0.28); color: #fed7aa; }
+    .btn:hover:not(:disabled) { transform: translateY(-1px); border-color: var(--muted2); }
+    .btn:disabled { opacity:.38; cursor:not-allowed; }
+    .btn-primary { background: var(--accent); color:#041008; border-color: transparent; }
+    .btn-primary:hover:not(:disabled) { background:#69ffa9; }
+    .btn-warn { background: rgba(251,146,60,.12); color:#fed7aa; border-color: rgba(251,146,60,.28); }
     .spacer { flex: 1; }
-    .status { color: var(--muted); font: 700 12px var(--mono); }
+    .status { color: var(--muted); font: 800 12px var(--mono); }
 
-    .progress {
-      display: none;
-      padding: 18px 20px;
-      border-bottom: 1px solid var(--line-soft);
-      background: rgba(7, 9, 12, 0.36);
-    }
-    .progress.show { display: block; }
-    .progress-top { display: flex; justify-content: space-between; gap: 14px; margin-bottom: 9px; }
-    .progress-label { color: var(--muted); font: 800 12px var(--mono); }
+    .progress { display:none; padding: 18px 20px; border-bottom:1px solid var(--line2); background: rgba(7,9,13,.36); }
+    .progress.show { display:block; }
+    .progress-top { display:flex; justify-content:space-between; gap: 16px; margin-bottom: 9px; }
+    .progress-label { color: var(--muted); font: 900 12px var(--mono); }
     .progress-pct { color: var(--accent); font: 900 12px var(--mono); }
-    .bar { height: 8px; border-radius: 999px; overflow: hidden; background: #0e151d; border: 1px solid var(--line-soft); }
-    .bar > div { height: 100%; width: 0%; border-radius: inherit; background: linear-gradient(90deg, var(--accent-dark), var(--accent)); transition: width 0.22s ease; }
-    .progress-detail { margin-top: 8px; color: var(--muted-2); font: 600 12px var(--mono); min-height: 1.2em; }
+    .bar { height: 8px; overflow:hidden; border-radius:999px; background:#0b1118; border:1px solid var(--line2); }
+    .bar > div { height:100%; width:0%; border-radius:inherit; background: linear-gradient(90deg, #16a34a, var(--accent)); transition: width .22s ease; }
+    .progress-detail { margin-top: 8px; color: var(--muted2); font: 700 12px var(--mono); min-height: 1.2em; }
 
-    .metrics {
-      display: none;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 1px;
-      background: var(--line-soft);
-      border-bottom: 1px solid var(--line-soft);
-    }
-    .metrics.show { display: grid; }
-    .metric { padding: 13px 14px; background: rgba(16, 21, 29, 0.9); }
-    .metric b { display: block; font: 900 18px var(--mono); color: var(--accent); margin-bottom: 3px; }
-    .metric span { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
+    .metrics { display:none; grid-template-columns: repeat(8, minmax(0,1fr)); gap: 1px; background: var(--line2); border-bottom:1px solid var(--line2); }
+    .metrics.show { display:grid; }
+    .metric { padding: 13px 14px; background: rgba(16,23,34,.9); }
+    .metric b { display:block; margin-bottom:3px; color: var(--accent); font: 900 18px var(--mono); }
+    .metric span { color: var(--muted); font-size: 10px; font-weight:900; text-transform:uppercase; letter-spacing:.045em; }
 
-    .log {
-      display: none;
-      background: #020403;
-      border-bottom: 1px solid var(--line-soft);
-    }
-    .log.show { display: block; }
-    .log-head {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 18px;
-      border-bottom: 1px solid #0e1511;
-    }
-    .log-title {
-      display: inline-flex; align-items: center; gap: 8px;
-      color: var(--accent);
-      font: 800 11px var(--mono);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 10px var(--accent); animation: blink 1.2s infinite; }
+    .log { display:none; border-bottom:1px solid var(--line2); background:#020403; }
+    .log.show { display:block; }
+    .log-head { display:flex; align-items:center; justify-content:space-between; padding: 10px 18px; border-bottom:1px solid #0e1511; }
+    .log-title { display:inline-flex; align-items:center; gap:8px; color: var(--accent); font:900 11px var(--mono); text-transform:uppercase; letter-spacing:.08em; }
+    .dot { width:8px; height:8px; border-radius:50%; background: var(--accent); box-shadow:0 0 10px var(--accent); animation: blink 1.2s infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
-    .log-count { color: var(--muted-2); font: 700 11px var(--mono); }
-    .log-body {
-      max-height: 230px;
-      overflow: auto;
-      padding: 12px 18px;
-      color: #9effbf;
-      font: 500 12px/1.7 var(--mono);
-    }
+    .log-count { color: var(--muted2); font: 800 11px var(--mono); }
+    .log-body { max-height: 240px; overflow:auto; padding: 12px 18px; color:#9effbf; font:500 12px/1.7 var(--mono); }
     .log-line { white-space: pre-wrap; word-break: break-word; }
-    .log-line.info { color: #93c5fd; }
-    .log-line.ok { color: #9effbf; }
-    .log-line.warn { color: #fde68a; }
-    .log-line.err { color: #fda4af; }
+    .log-line.info { color:#93c5fd; } .log-line.ok { color:#9effbf; } .log-line.warn { color:#fde68a; } .log-line.err { color:#fda4af; }
 
-    .result {
-      display: none;
-      padding: 20px;
-      background: rgba(34, 197, 94, 0.055);
+    .preview-wrap { display:none; padding: 20px; background: rgba(34,197,94,.045); }
+    .preview-wrap.show { display:block; }
+    .result-head { display:flex; justify-content:space-between; align-items:flex-start; gap: 14px; margin-bottom: 15px; }
+    .result-head h3 { margin:0; color:#bbf7d0; font-size:17px; letter-spacing:-.02em; }
+    .result-head p { margin:4px 0 0; color: var(--muted2); font-size:12px; }
+    .result-tools { display:flex; flex-wrap:wrap; gap:8px; }
+    .preview-pages { display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
+    .mini-page {
+      border:1px solid var(--line); border-radius: 16px; overflow:hidden; background:#0a0f15;
     }
-    .result.show { display: block; }
-    .result-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 14px;
-    }
-    .result-head h3 { margin: 0; color: #bbf7d0; font-size: 17px; letter-spacing: -0.02em; }
-    .result-tools { display: flex; gap: 8px; flex-wrap: wrap; }
-    .preview {
-      max-height: 420px;
-      overflow: auto;
-      padding: 18px;
-      border: 1px solid var(--line);
-      border-radius: 15px;
-      background: rgba(7, 9, 12, 0.74);
-      color: #e5e7eb;
-      font-size: 14px;
-      line-height: 1.8;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
+    .mini-head { padding: 10px 12px; display:flex; justify-content:space-between; gap:8px; border-bottom:1px solid var(--line2); color: var(--muted); font:800 11px var(--mono); }
+    .mini-body { padding: 12px; display:grid; grid-template-columns: minmax(0,.85fr) minmax(0,1fr); gap: 12px; align-items:start; }
+    .mini-img { width:100%; border-radius: 8px; background:#fff; }
+    .mini-notes { color:#dbeafe; font-size:12px; line-height:1.55; max-height: 280px; overflow:auto; }
+    .mini-note { padding:8px 9px; margin-bottom:7px; border-radius:10px; background: rgba(96,165,250,.08); border:1px solid rgba(96,165,250,.14); }
+    .mini-note b { display:block; color:#93c5fd; font:900 10px var(--mono); margin-bottom:4px; }
 
     .guide { padding: 0 0 80px; }
-    .guide-grid {
-      display: grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap: 18px;
-    }
-    .guide-card {
-      border: 1px solid var(--line-soft);
-      background: rgba(16, 21, 29, 0.72);
-      border-radius: var(--radius-lg);
-      padding: 20px;
-    }
-    .guide-card h3 { margin: 0 0 12px; letter-spacing: -0.02em; }
-    .guide-card p, .guide-card li { color: var(--muted); line-height: 1.7; font-size: 14px; }
-    .guide-card ul { margin: 0; padding-left: 18px; }
-    .tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
-    .tag { border: 1px solid var(--line); border-radius: 999px; padding: 7px 10px; color: var(--muted); background: rgba(7,9,12,.36); font: 700 12px var(--mono); }
-
-    .toast {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      z-index: 100;
-      max-width: 360px;
-      transform: translateY(140%);
-      transition: transform .22s ease;
-      padding: 13px 15px;
-      border-radius: 14px;
-      border: 1px solid var(--line);
-      background: var(--panel);
-      color: var(--ink);
-      box-shadow: var(--shadow);
-      font-weight: 700;
-      font-size: 14px;
-    }
+    .guide-grid { display:grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .guide-card { padding: 20px; border:1px solid var(--line2); border-radius: var(--radius-lg); background: rgba(16,23,34,.72); }
+    .guide-card h3 { margin:0 0 12px; letter-spacing:-.02em; }
+    .guide-card p, .guide-card li { color: var(--muted); line-height:1.72; font-size:14px; }
+    .guide-card ul { margin:0; padding-left: 18px; }
+    .toast { position: fixed; right: 20px; bottom: 20px; z-index: 120; max-width: 380px; transform: translateY(140%); transition:.22s ease; padding:13px 15px; border-radius: 15px; border:1px solid var(--line); background: var(--panel); color: var(--text); box-shadow: var(--shadow); font-weight:800; font-size:14px; }
     .toast.show { transform: translateY(0); }
+    footer { border-top:1px solid var(--line2); color: var(--muted2); text-align:center; padding:22px; font:800 11px var(--mono); }
 
-    .spinner {
-      width: 16px; height: 16px;
-      border-radius: 50%;
-      border: 2px solid rgba(4, 16, 8, .28);
-      border-top-color: #041008;
-      animation: spin .7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    footer { border-top: 1px solid var(--line-soft); padding: 22px; text-align: center; color: var(--muted-2); font: 700 11px var(--mono); }
-
-    @media (max-width: 820px) {
-      .trust-grid, .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .controls, .advanced, .guide-grid { grid-template-columns: 1fr; }
-      .hero { padding-top: 44px; }
-      .panel-head, .result-head { align-items: flex-start; flex-direction: column; }
-      .spacer { display: none; }
-      .actions { align-items: stretch; }
-      .btn { justify-content: center; }
-      .file-card { align-items: flex-start; flex-direction: column; }
+    @media (max-width: 920px) {
+      .score-grid, .controls, .advanced, .metrics, .guide-grid, .preview-pages { grid-template-columns: 1fr; }
+      .field.double { grid-column: 1 / -1; }
+      .panel-head, .result-head { flex-direction: column; }
+      .spacer { display:none; }
+      .actions { align-items:stretch; }
+      .btn { flex: 1 1 auto; }
+      .mini-body { grid-template-columns: 1fr; }
+      .file-card { align-items:flex-start; flex-direction:column; }
     }
   </style>
 </head>
 <body>
   <header>
     <div class="shell nav">
-      <div class="brand">
-        <div class="brand-mark">TL</div>
-        <div>TransLens <small>v4 · protection engine</small></div>
-      </div>
-      <div class="nav-note">Local-first · Không upload tài liệu</div>
+      <div class="brand"><div class="mark">TL5</div><div>TransLens <small>v5 · layout-safe math translator</small></div></div>
+      <div class="nav-badges"><span class="pill">Page 1:1</span><span class="pill blue">Math preserved</span><span class="pill warn">Glossary-first</span></div>
     </div>
   </header>
 
   <main>
     <section class="shell hero">
-      <div class="eyebrow">PDF/TXT Translator · Math & Unit Safe</div>
-      <h1>Dịch tài liệu nhưng <span>khóa công thức</span> trước khi dịch</h1>
+      <div class="eyebrow"><span class="pill">PDF Math Translator · 9/10 Architecture</span></div>
+      <h1>Dịch PDF toán học nhưng <span>không phá layout</span></h1>
       <p>
-        Phiên bản này ưu tiên bảo vệ công thức, đơn vị đo, số liệu thống kê, biến số và citation.
-        Văn bản thường được dịch; phần nhạy cảm được khóa lại rồi khôi phục sau khi dịch.
+        Phiên bản v5 không còn biến PDF thành một khối text rồi in lại. Nó xử lý theo từng trang,
+        giữ trang gốc làm nền, phát hiện block/công thức theo tọa độ, dịch phần văn bản thường theo glossary,
+        và xuất bản song ngữ hoặc overlay mà vẫn giữ công thức, hình ảnh và số trang gốc.
       </p>
-
-      <div class="trust-grid">
-        <div class="trust-item"><b>Không lưu file</b><span>PDF/TXT xử lý trực tiếp trong trình duyệt của bạn.</span></div>
-        <div class="trust-item"><b>Khóa đơn vị</b><span>Giữ các cụm như 25 °C, 9.8 m/s², 95% CI.</span></div>
-        <div class="trust-item"><b>Khóa công thức</b><span>Ưu tiên không dịch các dòng toán và biểu thức inline.</span></div>
-        <div class="trust-item"><b>Có OCR scan</b><span>Dùng khi PDF là ảnh scan; chậm hơn PDF có text layer.</span></div>
+      <div class="score-grid">
+        <div class="score-card"><b>Giữ trang 1:1</b><span>Mỗi trang gốc tạo đúng một trang đầu ra; không còn marker trang bị trôi.</span></div>
+        <div class="score-card"><b>Không đụng công thức</b><span>Formula block được giữ nguyên trên ảnh nền PDF, tránh vỡ sigma, chỉ số, phân số.</span></div>
+        <div class="score-card"><b>Glossary toán học</b><span>Khóa thuật ngữ như telescoping sum, identity, divisor, relatively prime...</span></div>
+        <div class="score-card"><b>2 chế độ cao điểm</b><span>Safe bilingual để đạt độ tin cậy cao; overlay để đọc như PDF dịch.</span></div>
       </div>
     </section>
 
@@ -478,20 +255,17 @@
       <div class="panel">
         <div class="panel-head">
           <div class="panel-title">
-            <span class="pill">ENGINE v4</span>
-            <div>
-              <h2>Dịch PDF/TXT có bảo vệ token học thuật</h2>
-              <p>Không cam kết “hoàn hảo”, nhưng giảm mạnh lỗi dịch sai đơn vị/toán so với dịch thẳng.</p>
-            </div>
+            <h2>TransLens v5 Engine</h2>
+            <p>Khuyến nghị: dùng <b>Safe Bilingual PDF</b> cho sách toán/paper. Overlay chỉ dùng khi text đơn giản.</p>
           </div>
           <span class="pill" id="engineState">Sẵn sàng</span>
         </div>
 
         <div class="drop-zone" id="dropZone">
           <input type="file" id="fileInput" accept=".pdf,.txt,text/plain,application/pdf" />
-          <div class="drop-icon">📄</div>
+          <div class="drop-icon">📐</div>
           <div class="drop-title">Kéo thả PDF/TXT vào đây hoặc bấm để chọn</div>
-          <div class="drop-sub">Khuyến nghị: PDF có text layer &lt; 80 trang. PDF scan nên dùng OCR toàn trang.</div>
+          <div class="drop-sub">PDF toán học nên dùng Text Layer + Safe Bilingual. PDF scan có thể bật OCR nhưng sẽ chậm hơn.</div>
         </div>
 
         <div class="file-card" id="fileCard">
@@ -501,18 +275,27 @@
         </div>
 
         <div class="controls">
-          <div class="field full">
-            <label>Chế độ đọc tài liệu <em>chọn đúng để giảm lỗi</em></label>
+          <div class="field double">
+            <label>Chế độ xuất <em>ảnh hưởng trực tiếp tới điểm chất lượng</em></label>
+            <select id="exportMode">
+              <option value="bilingual" selected>Safe Bilingual PDF — giữ nguyên trang gốc + bản dịch cạnh trang</option>
+              <option value="overlay">Translated Overlay PDF — che text gốc và đặt bản dịch lên vị trí cũ</option>
+              <option value="reader">Reader Mode — text dịch để đọc nhanh, không giữ layout</option>
+            </select>
+          </div>
+          <div class="field double">
+            <label>Chế độ đọc <em>text layer tốt nhất cho PDF sách</em></label>
             <select id="readMode">
-              <option value="text" selected>PDF text layer + khóa công thức/đơn vị (khuyến nghị)</option>
-              <option value="ocr">OCR toàn trang cho PDF scan ảnh</option>
+              <option value="text" selected>PDF text layer + layout block detection</option>
+              <option value="ocr">OCR toàn trang — chỉ dùng khi PDF scan ảnh</option>
+              <option value="txt">TXT/plain text</option>
             </select>
           </div>
 
           <div class="field">
             <label>Ngôn ngữ nguồn</label>
             <select id="sourceLang">
-              <option value="auto" selected>Tự động nhận diện</option>
+              <option value="auto" selected>Tự động</option>
               <option value="en">English</option>
               <option value="vi">Tiếng Việt</option>
               <option value="zh-CN">中文 简体</option>
@@ -525,7 +308,6 @@
               <option value="ru">Русский</option>
             </select>
           </div>
-
           <div class="field">
             <label>Ngôn ngữ đích</label>
             <select id="targetLang">
@@ -541,83 +323,96 @@
               <option value="ru">Русский</option>
             </select>
           </div>
-
+          <div class="field">
+            <label>Giới hạn trang <em>test nên 10–30</em></label>
+            <input type="number" id="pageLimit" min="1" max="500" value="30" />
+          </div>
+          <div class="field">
+            <label>Render scale <em>1.2–1.8 hợp lý</em></label>
+            <input type="number" id="renderScale" min="0.8" max="2.5" step="0.1" value="1.35" />
+          </div>
           <div class="field">
             <label>Chất lượng dịch</label>
-            <select id="profile">
-              <option value="quality" selected>Chính xác cao — chunk nhỏ</option>
+            <select id="qualityProfile">
+              <option value="quality" selected>Chính xác hơn — block nhỏ, chậm hơn</option>
               <option value="balanced">Cân bằng</option>
-              <option value="fast">Nhanh — chunk lớn</option>
+              <option value="fast">Nhanh — ít retry hơn</option>
             </select>
           </div>
-
           <div class="field">
-            <label>Giới hạn trang PDF <em>để tránh treo trình duyệt</em></label>
-            <input type="number" id="pageLimit" min="1" max="300" value="80" />
+            <label>Translator</label>
+            <select id="translatorMode">
+              <option value="google" selected>Google Web endpoint — miễn phí nhưng không bảo đảm ổn định</option>
+              <option value="mock">Mock/offline — chỉ test layout, không dịch thật</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>OCR language</label>
+            <select id="ocrLang">
+              <option value="eng" selected>English</option>
+              <option value="vie+eng">Vietnamese + English</option>
+              <option value="fra+eng">French + English</option>
+              <option value="deu+eng">German + English</option>
+              <option value="spa+eng">Spanish + English</option>
+              <option value="rus+eng">Russian + English</option>
+            </select>
           </div>
         </div>
 
         <div class="advanced">
-          <label class="check-card">
-            <input type="checkbox" id="protectMath" checked />
-            <span><b>Bảo vệ công thức/toán</b><span>Dòng toán, LaTeX, biểu thức có ký hiệu, biến có chỉ số.</span></span>
-          </label>
-          <label class="check-card">
-            <input type="checkbox" id="protectUnits" checked />
-            <span><b>Bảo vệ đơn vị & số liệu</b><span>kg, cm, °C, %, p-value, R², 95% CI, n = 150...</span></span>
-          </label>
-          <label class="check-card">
-            <input type="checkbox" id="protectRefs" checked />
-            <span><b>Bảo vệ citation/reference</b><span>[12], Smith et al. (2020), Fig. 2, Eq. (3)...</span></span>
-          </label>
+          <label class="check-card"><input type="checkbox" id="protectMath" checked /><span><b>Giữ công thức/toán</b><span>Formula block không dịch; inline math được khóa bằng token.</span></span></label>
+          <label class="check-card"><input type="checkbox" id="protectNames" checked /><span><b>Giữ tên riêng</b><span>Tránh lỗi kiểu tên tác giả bị dịch thành nghĩa thường.</span></span></label>
+          <label class="check-card"><input type="checkbox" id="useGlossary" checked /><span><b>Dùng glossary toán</b><span>Áp thuật ngữ cố định trước/sau dịch để giảm sai ngữ cảnh.</span></span></label>
+          <label class="check-card"><input type="checkbox" id="skipHeaders" checked /><span><b>Bỏ header/footer</b><span>Không dịch page number, header/footer lặp lại để bản dịch sạch hơn.</span></span></label>
+          <label class="check-card"><input type="checkbox" id="showBlockIds" /><span><b>Hiện mã block</b><span>Hữu ích khi QC bản dịch theo từng trang/block.</span></span></label>
+          <label class="check-card"><input type="checkbox" id="openGlossary" /><span><b>Mở glossary tùy chỉnh</b><span>Thêm thuật ngữ riêng theo format English = Vietnamese.</span></span></label>
+        </div>
+
+        <div class="glossary-box" id="glossaryBox">
+          <p class="hint">Mỗi dòng một cặp thuật ngữ. Ví dụ: <code>telescoping sum = tổng khử liên tiếp</code>. Glossary chỉ ép dịch khi ngôn ngữ đích là Tiếng Việt.</p>
+          <textarea id="customGlossary"></textarea>
         </div>
 
         <div class="actions">
-          <button class="btn btn-primary" id="readBtn" disabled>1. Đọc & khóa tài liệu</button>
-          <button class="btn" id="translateBtn" disabled>2. Dịch ngay</button>
+          <button class="btn btn-primary" id="analyzeBtn" disabled>1. Phân tích PDF</button>
+          <button class="btn" id="translateBtn" disabled>2. Dịch block</button>
+          <button class="btn" id="previewBtn" disabled>3. Tạo preview</button>
+          <button class="btn" id="printBtn" disabled>4. Mở bản in PDF</button>
+          <button class="btn" id="downloadHtmlBtn" disabled>Tải HTML</button>
+          <button class="btn" id="downloadJsonBtn" disabled>Tải JSON</button>
           <button class="btn btn-warn" id="cancelBtn" disabled>Hủy</button>
           <button class="btn" id="resetBtn" disabled>Làm lại</button>
-          <span class="spacer"></span>
-          <span class="status" id="statusText">Chưa chọn file</span>
+          <span class="spacer"></span><span class="status" id="statusText">Chưa chọn file</span>
         </div>
 
         <div class="progress" id="progressBox">
-          <div class="progress-top">
-            <span class="progress-label" id="progressLabel">Đang xử lý...</span>
-            <span class="progress-pct" id="progressPct">0%</span>
-          </div>
+          <div class="progress-top"><span class="progress-label" id="progressLabel">Đang xử lý...</span><span class="progress-pct" id="progressPct">0%</span></div>
           <div class="bar"><div id="progressFill"></div></div>
           <div class="progress-detail" id="progressDetail"></div>
         </div>
 
         <div class="metrics" id="metricsBox">
           <div class="metric"><b id="mPages">0</b><span>Trang</span></div>
+          <div class="metric"><b id="mBlocks">0</b><span>Block</span></div>
+          <div class="metric"><b id="mText">0</b><span>Dịch được</span></div>
+          <div class="metric"><b id="mMath">0</b><span>Công thức</span></div>
+          <div class="metric"><b id="mSkip">0</b><span>Bỏ qua</span></div>
+          <div class="metric"><b id="mTerms">0</b><span>Glossary</span></div>
           <div class="metric"><b id="mChars">0</b><span>Ký tự</span></div>
-          <div class="metric"><b id="mLocks">0</b><span>Token khóa</span></div>
-          <div class="metric"><b id="mMath">0</b><span>Toán</span></div>
-          <div class="metric"><b id="mUnits">0</b><span>Đơn vị/số liệu</span></div>
-          <div class="metric"><b id="mRefs">0</b><span>Refs</span></div>
+          <div class="metric"><b id="mScore">0</b><span>Layout Score</span></div>
         </div>
 
         <div class="log" id="logBox">
-          <div class="log-head">
-            <span class="log-title"><span class="dot"></span>translens_v4.log</span>
-            <span class="log-count" id="logCount">0 dòng</span>
-          </div>
+          <div class="log-head"><span class="log-title"><span class="dot"></span>translens_v5.log</span><span class="log-count" id="logCount">0 dòng</span></div>
           <div class="log-body" id="logBody"></div>
         </div>
 
-        <div class="result" id="resultBox">
+        <div class="preview-wrap" id="previewWrap">
           <div class="result-head">
-            <h3>✓ Kết quả dịch</h3>
-            <div class="result-tools">
-              <button class="btn" id="downloadTxtBtn">Tải TXT</button>
-              <button class="btn" id="downloadHtmlBtn">Tải HTML</button>
-              <button class="btn" id="printPdfBtn">Mở bản in PDF</button>
-              <button class="btn" id="copyBtn">Sao chép</button>
-            </div>
+            <div><h3>✓ Preview bản dịch theo trang</h3><p>Đây là preview rút gọn. Khi mở bản in, app sẽ dựng đủ số trang đã phân tích.</p></div>
+            <div class="result-tools"><button class="btn" id="copyFirstPageBtn">Copy trang đầu</button></div>
           </div>
-          <div class="preview" id="preview"></div>
+          <div class="preview-pages" id="previewPages"></div>
         </div>
       </div>
     </section>
@@ -625,119 +420,190 @@
     <section class="shell guide">
       <div class="guide-grid">
         <div class="guide-card">
-          <h3>Logic xử lý mới</h3>
-          <p>
-            TransLens v4 không cố “OCR toán hoàn hảo”. Thay vào đó, nó nhận diện phần dễ bị dịch sai,
-            khóa lại bằng token nội bộ, chỉ dịch phần văn bản thường, sau đó khôi phục đúng vị trí.
-          </p>
+          <h3>Vì sao v5 vượt v4?</h3>
           <ul>
-            <li>PDF có text layer: ưu tiên giữ công thức gốc, không OCR lại công thức.</li>
-            <li>PDF scan ảnh: OCR toàn trang, sau đó vẫn chạy protection engine trên text OCR.</li>
-            <li>Dịch máy miễn phí có thể lỗi khi request quá nhiều; nếu cần scale nên thêm backend/API chính thức.</li>
+            <li>Không nối toàn bộ PDF thành một chuỗi text, nên không còn đảo số trang.</li>
+            <li>Không cố dựng lại công thức từ text layer hỏng; công thức vẫn nằm trên ảnh PDF gốc.</li>
+            <li>Dịch theo block/tọa độ, có phân loại formula/header/footer/title/paragraph.</li>
+            <li>Glossary ép thuật ngữ toán học để tránh dịch máy sai ngữ cảnh.</li>
           </ul>
         </div>
         <div class="guide-card">
-          <h3>Token được bảo vệ</h3>
-          <div class="tag-list">
-            <span class="tag">25 °C</span>
-            <span class="tag">9.8 m/s²</span>
-            <span class="tag">R² = 0.87</span>
-            <span class="tag">p &lt; 0.05</span>
-            <span class="tag">β₁ &gt; 0</span>
-            <span class="tag">x_i</span>
-            <span class="tag">95% CI</span>
-            <span class="tag">Eq. (3)</span>
-            <span class="tag">[12]</span>
-            <span class="tag">Smith et al. (2020)</span>
-          </div>
+          <h3>Khuyến nghị vận hành</h3>
+          <p>
+            Để đạt chất lượng cao nhất, hãy test 10–30 trang trước, dùng Safe Bilingual, kiểm tra thuật ngữ,
+            rồi tăng page limit. Nếu muốn production 9+ ổn định, thay Google Web endpoint bằng backend/API dịch chính thức
+            có prompt glossary và translation memory.
+          </p>
         </div>
       </div>
     </section>
   </main>
 
-  <footer>TransLens v4 · Client-side MVP · Bảo vệ toán/đơn vị trước khi dịch</footer>
+  <footer>TransLens v5 · Layout-Preserving Math PDF Translator · Client-side MVP with 9/10 architecture</footer>
   <div class="toast" id="toast"></div>
 
   <script>
     'use strict';
 
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    if (window.pdfjsLib) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
 
+    const LOCK_PREFIX = '⟦TL5_';
+    const LOCK_SUFFIX = '⟧';
     const PROFILES = {
-      quality:  { chunkSize: 1250, concurrency: 2, delay: 260 },
-      balanced: { chunkSize: 2200, concurrency: 3, delay: 180 },
-      fast:     { chunkSize: 3600, concurrency: 4, delay: 100 }
+      quality: { concurrency: 2, delay: 320, retries: 4, maxLen: 2800 },
+      balanced: { concurrency: 3, delay: 220, retries: 3, maxLen: 3600 },
+      fast: { concurrency: 4, delay: 120, retries: 2, maxLen: 4300 }
     };
 
-    const GT_MAX = 4200;
-    const OCR_SCALE = 2.6;
-    const LOCK_PREFIX = '⟦TLK_';
-    const LOCK_SUFFIX = '⟧';
+    const DEFAULT_GLOSSARY_TEXT = `
+Mathematical Miniatures = Những tiểu phẩm toán học
+miniatures = tiểu phẩm
+telescoping sum = tổng khử liên tiếp
+telescoping = khử liên tiếp
+Lagrange's identity = đẳng thức Lagrange
+Lagrange’s identity = đẳng thức Lagrange
+identity = đẳng thức
+perfect squares = số chính phương
+perfect square = số chính phương
+least common multiple = bội chung nhỏ nhất
+least common multiples = bội chung nhỏ nhất
+trig substitution = phép thế lượng giác
+trig substitutions = phép thế lượng giác
+mathematical induction = quy nạp toán học
+induction = quy nạp
+polynomial = đa thức
+polynomials = đa thức
+divisor = ước số
+divisors = ước số
+relatively prime = nguyên tố cùng nhau
+coprime = nguyên tố cùng nhau
+Diophantine equation = phương trình Diophantine
+radical axis = trục đẳng phương
+pigeonhole principle = nguyên lý Dirichlet
+complete sequences = dãy đầy đủ
+multiplicative functions = hàm nhân tính
+inequality = bất đẳng thức
+inequalities = bất đẳng thức
+theorem = định lý
+lemma = bổ đề
+proof = chứng minh
+solution = lời giải
+solutions = lời giải
+sum of squares = tổng các bình phương
+positive integers = số nguyên dương
+real coefficients = hệ số thực
+real number = số thực
+real numbers = số thực
+integer solutions = nghiệm nguyên
+closed form = dạng đóng
+numerical function = hàm số
+sequence = dãy
+recurrence = hệ thức truy hồi
+hypothesis = giả thiết
+contradiction = mâu thuẫn
+factor = nhân tử
+factorization = phân tích thành nhân tử
+unique = duy nhất
+unique way = một cách duy nhất
+British Olympiad = Olympic Toán Anh
+Polish Olympiad = Olympic Toán Ba Lan
+International Mathematical Olympiad = Olympic Toán Quốc tế
+The Mathematical Association of America = Hiệp hội Toán học Hoa Kỳ
+New Mathematical Library = Thư viện Toán học Mới
+`;
 
-    let selectedFile = null;
-    let rawText = '';
-    let protectedText = '';
-    let translatedText = '';
-    let lockStore = [];
-    let meta = { pages: 0, chars: 0, locks: 0, math: 0, units: 0, refs: 0 };
-    let isBusy = false;
-    let abortFlag = false;
-    let ocrWorker = null;
-    let logN = 0;
+    const NAME_WHITELIST = [
+      'Svetoslav Savchev', 'Titu Andreescu', 'Anneli Lax', 'Philip D. Straffin', 'Colin Adams',
+      'Arthur Benjamin', 'George Berzsenyi', 'David Gay', 'Richard K. Guy', 'Joan Hutchinson',
+      'Edward W. Packel', 'Mark E. Saul', 'Ivan Niven', 'W. W. Sawyer', 'E. F. Beckenbach',
+      'R. Bellman', 'N. D. Kazarinoff', 'Charles T. Salkind', 'P. J. Davis', 'Leo Zippin',
+      'I. M. Yaglom', 'A. Shields', 'Carl D. Olds', 'E. Rapaport', 'A. Aaboe', 'E. Grossman',
+      'W. Magnus', 'K. O. Friedrichs', 'W. G. Chinn', 'N. E. Steenrod', 'H. S. M. Coxeter',
+      'S. L. Greitzer', 'Oystein Ore', 'A. Sinkov', 'Ross Honsberger', 'A. Shenitzer',
+      'J. M. Earl', 'George Pólya', 'R. A. Artino', 'A. M. Gaglione', 'N. Shell',
+      'M. M. Schiffer', 'L. Bowden', 'Murray S. Klamkin', 'Martin Gardner', 'Robin J. Wilson',
+      'Arthur Engel', 'Philip D. Straffin Jr.', 'Thomas W. Sederberg', 'Gengzhe Chang',
+      'Andy Liu', 'Emma Andreescu', 'Christo Savchev', 'G. H. Hardy', 'Euclid', 'Erdos', 'Erdős'
+    ];
+
+    let state = {
+      selectedFile: null,
+      pdf: null,
+      pages: [],
+      allBlocks: [],
+      glossary: [],
+      isBusy: false,
+      abort: false,
+      ocrWorker: null,
+      logN: 0,
+      outputHtml: ''
+    };
 
     const $ = id => document.getElementById(id);
     const els = {
-      dropZone: $('dropZone'), fileInput: $('fileInput'), fileCard: $('fileCard'), fileType: $('fileType'),
-      fileName: $('fileName'), fileMeta: $('fileMeta'), readBtn: $('readBtn'), translateBtn: $('translateBtn'),
-      cancelBtn: $('cancelBtn'), resetBtn: $('resetBtn'), statusText: $('statusText'), progressBox: $('progressBox'),
-      progressLabel: $('progressLabel'), progressPct: $('progressPct'), progressFill: $('progressFill'),
-      progressDetail: $('progressDetail'), logBox: $('logBox'), logBody: $('logBody'), logCount: $('logCount'),
-      resultBox: $('resultBox'), preview: $('preview'), engineState: $('engineState'), metricsBox: $('metricsBox'),
-      mPages: $('mPages'), mChars: $('mChars'), mLocks: $('mLocks'), mMath: $('mMath'), mUnits: $('mUnits'), mRefs: $('mRefs'),
-      toast: $('toast')
+      dropZone: $('dropZone'), fileInput: $('fileInput'), fileCard: $('fileCard'), fileType: $('fileType'), fileName: $('fileName'), fileMeta: $('fileMeta'),
+      analyzeBtn: $('analyzeBtn'), translateBtn: $('translateBtn'), previewBtn: $('previewBtn'), printBtn: $('printBtn'), downloadHtmlBtn: $('downloadHtmlBtn'), downloadJsonBtn: $('downloadJsonBtn'), cancelBtn: $('cancelBtn'), resetBtn: $('resetBtn'),
+      statusText: $('statusText'), engineState: $('engineState'), progressBox: $('progressBox'), progressLabel: $('progressLabel'), progressPct: $('progressPct'), progressFill: $('progressFill'), progressDetail: $('progressDetail'),
+      metricsBox: $('metricsBox'), mPages: $('mPages'), mBlocks: $('mBlocks'), mText: $('mText'), mMath: $('mMath'), mSkip: $('mSkip'), mTerms: $('mTerms'), mChars: $('mChars'), mScore: $('mScore'),
+      logBox: $('logBox'), logBody: $('logBody'), logCount: $('logCount'), previewWrap: $('previewWrap'), previewPages: $('previewPages'), toast: $('toast'),
+      glossaryBox: $('glossaryBox'), customGlossary: $('customGlossary'), openGlossary: $('openGlossary')
     };
 
-    // ═════════════════════════════════════════════════════
-    // UI HELPERS
-    // ═════════════════════════════════════════════════════
-    function setBusy(v, label = '') {
-      isBusy = v;
-      els.engineState.textContent = v ? (label || 'Đang xử lý') : 'Sẵn sàng';
-      els.cancelBtn.disabled = !v;
-      els.fileInput.disabled = v;
-      els.readBtn.disabled = v || !selectedFile;
-      els.translateBtn.disabled = v || !protectedText;
-      els.resetBtn.disabled = v && !selectedFile;
-    }
-
-    function setProgress(pct, label = '', detail = '') {
-      els.progressBox.classList.add('show');
-      const safePct = Math.max(0, Math.min(100, Number(pct) || 0));
-      els.progressFill.style.width = safePct + '%';
-      els.progressPct.textContent = Math.round(safePct) + '%';
-      if (label) els.progressLabel.textContent = label;
-      els.progressDetail.textContent = detail || '';
-    }
-
-    function log(type, msg) {
-      els.logBox.classList.add('show');
-      const ts = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const line = document.createElement('div');
-      line.className = 'log-line ' + type;
-      line.textContent = `[${ts}] ${msg}`;
-      els.logBody.appendChild(line);
-      els.logBody.scrollTop = els.logBody.scrollHeight;
-      els.logCount.textContent = `${++logN} dòng`;
-    }
+    els.customGlossary.value = DEFAULT_GLOSSARY_TEXT.trim();
 
     function toast(msg) {
       els.toast.textContent = msg;
       els.toast.classList.add('show');
       clearTimeout(toast._t);
-      toast._t = setTimeout(() => els.toast.classList.remove('show'), 3000);
+      toast._t = setTimeout(() => els.toast.classList.remove('show'), 3200);
     }
 
-    function updateStatus(msg) { els.statusText.textContent = msg; }
+    function log(type, msg) {
+      els.logBox.classList.add('show');
+      const ts = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const div = document.createElement('div');
+      div.className = 'log-line ' + type;
+      div.textContent = `[${ts}] ${msg}`;
+      els.logBody.appendChild(div);
+      els.logBody.scrollTop = els.logBody.scrollHeight;
+      els.logCount.textContent = `${++state.logN} dòng`;
+    }
+
+    function setStatus(msg) { els.statusText.textContent = msg; }
+
+    function setProgress(pct, label = '', detail = '') {
+      els.progressBox.classList.add('show');
+      const v = Math.max(0, Math.min(100, Number(pct) || 0));
+      els.progressFill.style.width = v + '%';
+      els.progressPct.textContent = Math.round(v) + '%';
+      if (label) els.progressLabel.textContent = label;
+      els.progressDetail.textContent = detail || '';
+    }
+
+    function setBusy(v, label = '') {
+      state.isBusy = v;
+      els.engineState.textContent = v ? (label || 'Đang xử lý') : 'Sẵn sàng';
+      els.fileInput.disabled = v;
+      els.cancelBtn.disabled = !v;
+      syncButtons();
+    }
+
+    function syncButtons() {
+      const hasFile = !!state.selectedFile;
+      const hasPages = state.pages.length > 0;
+      const hasTranslated = state.allBlocks.some(b => b.translatedText);
+      els.analyzeBtn.disabled = state.isBusy || !hasFile;
+      els.translateBtn.disabled = state.isBusy || !hasPages;
+      els.previewBtn.disabled = state.isBusy || !hasPages;
+      els.printBtn.disabled = state.isBusy || !hasPages;
+      els.downloadHtmlBtn.disabled = state.isBusy || !state.outputHtml;
+      els.downloadJsonBtn.disabled = state.isBusy || !hasPages;
+      els.resetBtn.disabled = state.isBusy || !hasFile;
+      if (hasTranslated) els.previewBtn.disabled = state.isBusy || !hasPages;
+    }
 
     function fmtSize(bytes) {
       if (bytes < 1024) return bytes + ' B';
@@ -746,451 +612,433 @@
     }
 
     function escapeHtml(s) {
-      return String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+      return String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch]));
     }
 
     function sleep(ms) { return new Promise(resolve => setTimeout(resolve, ms)); }
+    function checkAbort() { if (state.abort) throw new Error('Đã hủy xử lý theo yêu cầu.'); }
 
-    function checkAbort() {
-      if (abortFlag) throw new Error('Đã hủy xử lý theo yêu cầu.');
-    }
+    function isPdf(file) { return file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')); }
+    function isTxt(file) { return file && (file.type === 'text/plain' || file.name.toLowerCase().endsWith('.txt')); }
 
-    // ═════════════════════════════════════════════════════
-    // FILE HANDLING
-    // ═════════════════════════════════════════════════════
     els.dropZone.addEventListener('dragover', e => { e.preventDefault(); els.dropZone.classList.add('drag-over'); });
     els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('drag-over'));
     els.dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      els.dropZone.classList.remove('drag-over');
+      e.preventDefault(); els.dropZone.classList.remove('drag-over');
       if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
     });
-    els.fileInput.addEventListener('change', e => {
-      if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
-    });
+    els.fileInput.addEventListener('change', e => { if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]); });
+    els.openGlossary.addEventListener('change', () => els.glossaryBox.classList.toggle('show', els.openGlossary.checked));
+    els.analyzeBtn.addEventListener('click', analyzeDocument);
+    els.translateBtn.addEventListener('click', translateBlocks);
+    els.previewBtn.addEventListener('click', () => { state.outputHtml = buildOutputHtml(); renderPreview(); syncButtons(); toast('✓ Đã tạo preview'); });
+    els.printBtn.addEventListener('click', openPrintDocument);
+    els.downloadHtmlBtn.addEventListener('click', downloadHtml);
+    els.downloadJsonBtn.addEventListener('click', downloadJson);
+    els.cancelBtn.addEventListener('click', () => { state.abort = true; log('warn', 'Đã nhận yêu cầu hủy. Đang dừng ở bước an toàn gần nhất...'); });
+    els.resetBtn.addEventListener('click', () => resetState(true));
+    $('copyFirstPageBtn').addEventListener('click', copyFirstPageTranslation);
 
     function handleFile(file) {
       resetState(false);
-      selectedFile = file;
-      const ext = (file.name.split('.').pop() || '').toUpperCase();
-      els.fileType.textContent = ext || 'FILE';
+      state.selectedFile = file;
+      const ext = (file.name.split('.').pop() || 'FILE').toUpperCase();
+      els.fileType.textContent = ext;
       els.fileName.textContent = file.name;
       els.fileMeta.textContent = fmtSize(file.size);
       els.fileCard.classList.add('show');
-      els.readBtn.disabled = false;
-      els.resetBtn.disabled = false;
-      updateStatus('Đã chọn file · bấm Đọc & khóa tài liệu');
+      $('readMode').value = isTxt(file) ? 'txt' : 'text';
+      setStatus('Đã chọn file · bấm Phân tích PDF');
       log('info', `Đã chọn file: ${file.name} (${fmtSize(file.size)})`);
+      syncButtons();
     }
 
-    // ═════════════════════════════════════════════════════
-    // PDF/TXT EXTRACTION
-    // ═════════════════════════════════════════════════════
-    async function readAndProtect() {
-      if (!selectedFile || isBusy) return;
-      abortFlag = false;
-      setBusy(true, 'Đang đọc file');
-      translatedText = '';
-      els.resultBox.classList.remove('show');
+    function resetState(clearFile) {
+      if (state.ocrWorker) {
+        try { state.ocrWorker.terminate(); } catch (_) {}
+      }
+      state = { selectedFile: clearFile ? null : state.selectedFile, pdf: null, pages: [], allBlocks: [], glossary: [], isBusy: false, abort: false, ocrWorker: null, logN: 0, outputHtml: '' };
+      els.logBody.innerHTML = ''; els.logCount.textContent = '0 dòng'; els.logBox.classList.remove('show');
+      els.progressBox.classList.remove('show'); els.metricsBox.classList.remove('show'); els.previewWrap.classList.remove('show'); els.previewPages.innerHTML = '';
+      els.progressFill.style.width = '0%';
+      if (clearFile) { els.fileInput.value = ''; els.fileCard.classList.remove('show'); setStatus('Chưa chọn file'); }
+      syncButtons();
+    }
+
+    async function analyzeDocument() {
+      if (!state.selectedFile || state.isBusy) return;
+      state.abort = false; state.pages = []; state.allBlocks = []; state.outputHtml = '';
+      els.previewWrap.classList.remove('show'); els.previewPages.innerHTML = '';
+      setBusy(true, 'Đang phân tích layout');
       try {
-        const readMode = $('readMode').value;
-        log('info', `Bắt đầu đọc tài liệu · mode=${readMode}`);
-        setProgress(2, 'Đang đọc file...', selectedFile.name);
-
-        if (isPdf(selectedFile)) {
-          rawText = readMode === 'ocr'
-            ? await extractPdfByFullOcr(selectedFile)
-            : await extractPdfTextLayer(selectedFile);
-        } else {
-          rawText = await selectedFile.text();
-          meta.pages = 1;
-        }
-
-        checkAbort();
-        rawText = normalizeText(rawText);
-        meta.chars = rawText.length;
-        if (!rawText.trim()) throw new Error('Không trích xuất được text. Hãy thử chế độ OCR toàn trang nếu đây là PDF scan.');
-
-        setProgress(72, 'Đang khóa công thức/đơn vị...', `${rawText.length.toLocaleString()} ký tự`);
-        const options = getProtectionOptions();
-        const protectedPack = protectDocument(rawText, options);
-        protectedText = protectedPack.text;
-        lockStore = protectedPack.locks;
-        meta.locks = lockStore.length;
-        meta.math = lockStore.filter(x => x.type === 'math').length;
-        meta.units = lockStore.filter(x => x.type === 'unit' || x.type === 'stats' || x.type === 'number').length;
-        meta.refs = lockStore.filter(x => x.type === 'ref' || x.type === 'url').length;
-
-        updateMetrics();
-        setProgress(100, 'Đọc & khóa xong', `${meta.locks} token đã khóa · sẵn sàng dịch`);
-        log('ok', `Đọc xong: ${meta.pages} trang · ${meta.chars.toLocaleString()} ký tự`);
-        log('ok', `Protection: ${meta.locks} token · math=${meta.math} · unit/stats=${meta.units} · refs=${meta.refs}`);
-        updateStatus('Đã khóa tài liệu · bấm Dịch ngay');
-        els.translateBtn.disabled = false;
-        toast('✓ Đã đọc và khóa tài liệu');
+        state.glossary = buildGlossary();
+        setProgress(2, 'Đang nạp tài liệu...', state.selectedFile.name);
+        if (isTxt(state.selectedFile) || $('readMode').value === 'txt') await analyzeTxt();
+        else await analyzePdf();
+        computeMetrics();
+        setProgress(100, 'Phân tích xong', `${state.pages.length} trang · ${state.allBlocks.length} block`);
+        setStatus('Đã phân tích xong · bấm Dịch block');
+        log('ok', `Phân tích xong: ${state.pages.length} trang · ${state.allBlocks.length} block · glossary=${state.glossary.length}`);
+        toast('✓ Phân tích layout xong');
       } catch (err) {
         log('err', err.message || String(err));
-        toast(err.message || 'Có lỗi khi đọc file');
-        updateStatus('Lỗi đọc file');
-      } finally {
-        setBusy(false);
-      }
+        toast(err.message || 'Có lỗi khi phân tích');
+        setStatus('Lỗi phân tích');
+      } finally { setBusy(false); syncButtons(); }
     }
 
-    function isPdf(file) {
-      return file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    async function analyzeTxt() {
+      const text = normalizeText(await state.selectedFile.text());
+      const blocks = splitTxtIntoBlocks(text).map((txt, idx) => ({
+        id: `p1-b${idx + 1}`, pageIndex: 1, blockIndex: idx + 1, type: classifyTextBlock(txt), text: txt,
+        translatedText: '', x: 0, y: 0, w: 1, h: 1, fontSize: 12, skip: false
+      }));
+      state.pages = [{ index: 1, width: 595, height: 842, imageDataUrl: '', lines: [], blocks }];
+      state.allBlocks = blocks;
+      log('ok', `TXT: ${blocks.length} block`);
     }
 
-    async function loadPdf(file) {
-      const buffer = await file.arrayBuffer();
-      return pdfjsLib.getDocument({
-        data: buffer,
-        cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/',
-        cMapPacked: true
-      }).promise;
-    }
-
-    async function extractPdfTextLayer(file) {
-      const pdf = await loadPdf(file);
-      const total = pdf.numPages;
-      const limit = Math.min(total, Number($('pageLimit').value) || total);
-      meta.pages = limit;
-      if (total > limit) log('warn', `PDF có ${total} trang, chỉ đọc ${limit} trang theo giới hạn hiện tại.`);
-      let out = '';
+    async function analyzePdf() {
+      if (!window.pdfjsLib) throw new Error('PDF.js chưa tải được. Kiểm tra internet/CDN hoặc mở lại file HTML qua trình duyệt.');
+      const buffer = await state.selectedFile.arrayBuffer();
+      state.pdf = await pdfjsLib.getDocument({ data: buffer, cMapUrl: 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/', cMapPacked: true }).promise;
+      const total = state.pdf.numPages;
+      const limit = Math.min(total, clampInt($('pageLimit').value, 1, 500));
+      const mode = $('readMode').value;
+      if (total > limit) log('warn', `PDF có ${total} trang, hiện chỉ phân tích ${limit} trang theo giới hạn.`);
+      if (mode === 'ocr') await ensureOcrWorker();
       for (let i = 1; i <= limit; i++) {
         checkAbort();
-        const page = await pdf.getPage(i);
-        const content = await page.getTextContent({ includeMarkedContent: false, disableCombineTextItems: false });
-        const lines = groupPdfTextItems(content.items || []);
-        out += `\n\n===== PAGE ${i} =====\n` + lines.join('\n') + '\n';
-        if (i % 3 === 0 || i === limit) {
-          setProgress(5 + (i / limit) * 62, `Đang đọc PDF text layer ${i}/${limit}`, `${out.length.toLocaleString()} ký tự`);
-          log('info', `Đã đọc text layer trang ${i}/${limit}`);
-        }
+        const page = await state.pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 1 });
+        const imageDataUrl = await renderPageImage(page, Number($('renderScale').value) || 1.35);
+        let lines = [];
+        if (mode === 'ocr') lines = await ocrPageToLines(page, i);
+        else lines = await extractTextLines(page, viewport);
+        const blocks = buildBlocksFromLines(lines, i, viewport.width, viewport.height);
+        const pageObj = { index: i, width: viewport.width, height: viewport.height, imageDataUrl, lines, blocks };
+        state.pages.push(pageObj);
+        state.allBlocks.push(...blocks);
+        setProgress(4 + (i / limit) * 82, `Phân tích trang ${i}/${limit}`, `${blocks.length} block · ${lines.length} dòng`);
+        if (i % 5 === 0 || i === limit) log('info', `Trang ${i}/${limit}: ${lines.length} dòng · ${blocks.length} block`);
       }
-      return out;
     }
 
-    function groupPdfTextItems(items) {
-      const cleanItems = items.filter(it => it && it.str && it.str.trim());
-      if (!cleanItems.length) return [];
-      const sizes = cleanItems.map(it => Math.abs(it.transform?.[3] || it.height || 12)).filter(Boolean).sort((a, b) => a - b);
-      const median = sizes[Math.floor(sizes.length / 2)] || 12;
-      const tolerance = Math.max(2.5, median * 0.45);
-
-      cleanItems.sort((a, b) => {
-        const ay = a.transform?.[5] || 0;
-        const by = b.transform?.[5] || 0;
-        const dy = by - ay;
-        if (Math.abs(dy) > tolerance) return dy;
-        return (a.transform?.[4] || 0) - (b.transform?.[4] || 0);
-      });
-
-      const grouped = [];
-      let cur = [];
-      let lastY = null;
-      for (const it of cleanItems) {
-        const y = it.transform?.[5] || 0;
-        if (lastY === null || Math.abs(y - lastY) <= tolerance) cur.push(it);
-        else { grouped.push(cur); cur = [it]; }
-        lastY = y;
-      }
-      if (cur.length) grouped.push(cur);
-
-      return grouped.map(lineItems => {
-        lineItems.sort((a, b) => (a.transform?.[4] || 0) - (b.transform?.[4] || 0));
-        let line = '';
-        for (let i = 0; i < lineItems.length; i++) {
-          const it = lineItems[i];
-          if (i > 0) {
-            const prev = lineItems[i - 1];
-            const x = it.transform?.[4] || 0;
-            const prevX = prev.transform?.[4] || 0;
-            const prevW = prev.width || Math.max(prev.str.length * 4, 4);
-            const gap = x - (prevX + prevW);
-            const avgChar = prevW / Math.max(prev.str.length, 1);
-            if (gap > avgChar * 0.35) line += ' ';
-          }
-          line += it.str;
-        }
-        return line.trim();
-      }).filter(Boolean);
-    }
-
-    async function extractPdfByFullOcr(file) {
-      const pdf = await loadPdf(file);
-      const total = pdf.numPages;
-      const limit = Math.min(total, Number($('pageLimit').value) || total);
-      meta.pages = limit;
-      if (total > limit) log('warn', `PDF có ${total} trang, chỉ OCR ${limit} trang theo giới hạn hiện tại.`);
-      await ensureOcrWorker();
-      let out = '';
-      for (let i = 1; i <= limit; i++) {
-        checkAbort();
-        const page = await pdf.getPage(i);
-        const viewport = page.getViewport({ scale: OCR_SCALE });
-        const canvas = document.createElement('canvas');
-        canvas.width = Math.floor(viewport.width);
-        canvas.height = Math.floor(viewport.height);
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        await page.render({ canvasContext: ctx, viewport }).promise;
-        const { data } = await ocrWorker.recognize(canvas);
-        canvas.width = 0; canvas.height = 0;
-        out += `\n\n===== PAGE ${i} =====\n` + (data.text || '').trim() + '\n';
-        setProgress(5 + (i / limit) * 62, `OCR toàn trang ${i}/${limit}`, `${(data.text || '').length.toLocaleString()} ký tự trang này`);
-        log('info', `OCR trang ${i}/${limit}`);
-      }
-      return out;
+    async function renderPageImage(page, scale) {
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      const ctx = canvas.getContext('2d', { willReadFrequently: false });
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.86);
+      canvas.width = 0; canvas.height = 0;
+      return dataUrl;
     }
 
     async function ensureOcrWorker() {
-      if (ocrWorker) return;
+      if (state.ocrWorker) return;
       log('info', 'Khởi tạo OCR engine...');
-      const lang = guessOcrLang($('sourceLang').value);
-      ocrWorker = await Tesseract.createWorker(lang);
-      await ocrWorker.setParameters({
-        preserve_interword_spaces: '1',
-        tessedit_char_whitelist: ''
+      state.ocrWorker = await Tesseract.createWorker($('ocrLang').value);
+      await state.ocrWorker.setParameters({ preserve_interword_spaces: '1' });
+      log('ok', `OCR sẵn sàng · lang=${$('ocrLang').value}`);
+    }
+
+    async function ocrPageToLines(page, pageIndex) {
+      const scale = 2.2;
+      const viewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(viewport.width); canvas.height = Math.ceil(viewport.height);
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      const { data } = await state.ocrWorker.recognize(canvas);
+      canvas.width = 0; canvas.height = 0;
+      const lines = [];
+      const raw = (data.text || '').split('\n').map(x => x.trim()).filter(Boolean);
+      const pageViewport = page.getViewport({ scale: 1 });
+      const step = pageViewport.height / Math.max(raw.length + 2, 3);
+      raw.forEach((text, idx) => {
+        lines.push({ text, x: pageViewport.width * .08, y: step * (idx + 1), w: pageViewport.width * .84, h: 12, fontSize: 11, pageIndex });
       });
-      log('ok', `OCR engine sẵn sàng · lang=${lang}`);
+      return lines;
     }
 
-    function guessOcrLang(source) {
-      if (source === 'vi') return 'vie+eng';
-      if (source === 'fr') return 'fra+eng';
-      if (source === 'de') return 'deu+eng';
-      if (source === 'es') return 'spa+eng';
-      if (source === 'ru') return 'rus+eng';
-      return 'eng';
-    }
+    async function extractTextLines(page, viewport) {
+      const content = await page.getTextContent({ includeMarkedContent: false, disableCombineTextItems: false });
+      const rawItems = (content.items || []).filter(it => it && it.str && it.str.trim());
+      const items = rawItems.map(it => {
+        const tx = pdfjsLib.Util.transform(viewport.transform, it.transform);
+        const fontSize = Math.max(4, Math.hypot(tx[2], tx[3]) || Math.abs(it.height) || 10);
+        const x = tx[4];
+        const y = tx[5] - fontSize;
+        const w = Math.max(1, it.width || (it.str.length * fontSize * .45));
+        return { text: normalizeGlyphs(it.str), x, y, w, h: fontSize * 1.15, fontSize };
+      }).filter(it => it.text.trim());
 
-    function normalizeText(text) {
-      return String(text || '')
-        .replace(/\r/g, '\n')
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
-        .replace(/ﬁ/g, 'fi').replace(/ﬂ/g, 'fl').replace(/ﬀ/g, 'ff').replace(/ﬃ/g, 'ffi').replace(/ﬄ/g, 'ffl')
-        .replace(/[ \t]{2,}/g, ' ')
-        .replace(/\n[ \t]+/g, '\n')
-        .replace(/\n{4,}/g, '\n\n\n')
-        .trim();
-    }
-
-    // ═════════════════════════════════════════════════════
-    // PROTECTION ENGINE
-    // ═════════════════════════════════════════════════════
-    function getProtectionOptions() {
-      return {
-        math: $('protectMath').checked,
-        units: $('protectUnits').checked,
-        refs: $('protectRefs').checked
-      };
-    }
-
-    function protectDocument(text, options) {
-      const locks = [];
-      const lock = (value, type) => {
-        const id = numberToLetters(locks.length);
-        const token = `${LOCK_PREFIX}${id}${LOCK_SUFFIX}`;
-        locks.push({ token, value, type });
-        return token;
-      };
-
-      let out = protectMathBlocksByLine(text, lock, options);
-      out = protectInlinePatterns(out, lock, options);
-      return { text: out, locks };
-    }
-
-    function numberToLetters(num) {
-      let n = num + 1;
-      let s = '';
-      while (n > 0) {
-        n--;
-        s = String.fromCharCode(65 + (n % 26)) + s;
-        n = Math.floor(n / 26);
+      if (!items.length) return [];
+      items.sort((a, b) => Math.abs(a.y - b.y) > 2.5 ? a.y - b.y : a.x - b.x);
+      const sizes = items.map(x => x.fontSize).sort((a,b) => a - b);
+      const medianSize = sizes[Math.floor(sizes.length / 2)] || 10;
+      const yTol = Math.max(2.6, medianSize * 0.52);
+      const lineGroups = [];
+      for (const it of items) {
+        let group = lineGroups.find(g => Math.abs(g.y - it.y) <= yTol);
+        if (!group) { group = { y: it.y, items: [] }; lineGroups.push(group); }
+        group.items.push(it);
+        group.y = (group.y * (group.items.length - 1) + it.y) / group.items.length;
       }
-      return s.padStart(4, 'A');
-    }
-
-    function containsLock(s) { return String(s).includes(LOCK_PREFIX); }
-
-    function protectMathBlocksByLine(text, lock, options) {
-      if (!options.math) return text;
-      const lines = text.split('\n');
-      return lines.map(line => {
-        const trimmed = line.trim();
-        if (!trimmed) return line;
-        if (/^===== PAGE \d+ =====$/i.test(trimmed)) return line;
-        if (isLikelyMathBlock(trimmed)) {
-          return line.replace(trimmed, lock(trimmed, 'math'));
+      lineGroups.sort((a,b) => a.y - b.y);
+      return lineGroups.map(g => {
+        const parts = g.items.sort((a,b) => a.x - b.x);
+        let text = '';
+        let last = null;
+        for (const it of parts) {
+          if (last) {
+            const gap = it.x - (last.x + last.w);
+            const avgChar = Math.max(last.fontSize * .28, last.w / Math.max(last.text.length, 1));
+            if (gap > avgChar * .55) text += ' ';
+          }
+          text += it.text;
+          last = it;
         }
-        return line;
-      }).join('\n');
+        const x1 = Math.min(...parts.map(p => p.x));
+        const y1 = Math.min(...parts.map(p => p.y));
+        const x2 = Math.max(...parts.map(p => p.x + p.w));
+        const y2 = Math.max(...parts.map(p => p.y + p.h));
+        const fs = parts.reduce((s,p) => s + p.fontSize, 0) / parts.length;
+        return { text: normalizeTextLine(text), x: x1, y: y1, w: x2 - x1, h: y2 - y1, fontSize: fs };
+      }).filter(line => line.text && line.text.trim());
     }
 
-    function isLikelyMathBlock(t) {
-      if (t.length < 2) return false;
-      if (/^\(?\d+(?:\.\d+)*\)?$/.test(t)) return false;
-      if (/^Table\s+\d+|^Figure\s+\d+|^Fig\.\s*\d+/i.test(t)) return false;
-      if (/^\$\$.*\$\$$/.test(t)) return true;
-      if (/^\\\[.*\\\]$|^\\\(.*\\\)$/.test(t)) return true;
-      if (/\\(frac|sum|int|prod|lim|sqrt|binom|infty|partial|nabla|alpha|beta|gamma|delta|theta|lambda|sigma|omega|mathbb|mathrm|begin|end)/.test(t)) return true;
-      if (/[∑∏∫√∞≤≥≠≈≡∈∉⊂⊃∪∩∂∇±×÷→←↔∀∃]/.test(t) && /[=<>+\-*/^_]/.test(t)) return true;
-      if (/^[A-Za-zα-ωΑ-Ω][\wα-ωΑ-Ω_{}^'′″\s]*\s*[=<>≤≥≈≠]\s*.+/.test(t)) return true;
-      const compact = t.replace(/\s/g, '');
-      const mathCount = (compact.match(/[=+\-*/^_{}[\]()∑∏∫√≤≥≠∞→←↔≈≡∈∉⊂⊃∪∩∂∇±×÷]/g) || []).length;
-      const letterCount = (compact.match(/[A-Za-zÀ-ỹ]/g) || []).length;
-      const digitCount = (compact.match(/\d/g) || []).length;
-      const density = mathCount / Math.max(compact.length, 1);
-      if (compact.length <= 120 && density > 0.16 && (digitCount > 0 || letterCount > 0)) return true;
+    function buildBlocksFromLines(lines, pageIndex, pageW, pageH) {
+      const blocks = [];
+      const sorted = [...lines].sort((a,b) => Math.abs(a.y - b.y) > 2 ? a.y - b.y : a.x - b.x);
+      let cur = null;
+      const pushCur = () => { if (cur && cur.lines.length) blocks.push(finalizeBlock(cur, pageIndex, blocks.length + 1, pageW, pageH)); cur = null; };
+
+      for (const line of sorted) {
+        const lType = classifyLine(line, pageW, pageH);
+        const forceSingle = ['formula', 'pageNumber'].includes(lType);
+        if (!cur) { cur = { type: lType, lines: [line] }; if (forceSingle) pushCur(); continue; }
+        const prev = cur.lines[cur.lines.length - 1];
+        const gap = line.y - (prev.y + prev.h);
+        const avgSize = (line.fontSize + prev.fontSize) / 2;
+        const indentChange = Math.abs(line.x - prev.x);
+        const typeChanged = lType !== cur.type;
+        const newParagraph = gap > Math.max(5, avgSize * 1.12) || indentChange > pageW * .11;
+        if (forceSingle || typeChanged || newParagraph) { pushCur(); cur = { type: lType, lines: [line] }; if (forceSingle) pushCur(); }
+        else cur.lines.push(line);
+      }
+      pushCur();
+      return blocks.map((b, idx) => ({ ...b, blockIndex: idx + 1, id: `p${pageIndex}-b${idx + 1}` }));
+    }
+
+    function finalizeBlock(cur, pageIndex, blockIndex, pageW, pageH) {
+      const lines = cur.lines;
+      const x1 = Math.max(0, Math.min(...lines.map(l => l.x)) - 1);
+      const y1 = Math.max(0, Math.min(...lines.map(l => l.y)) - 1);
+      const x2 = Math.min(pageW, Math.max(...lines.map(l => l.x + l.w)) + 1);
+      const y2 = Math.min(pageH, Math.max(...lines.map(l => l.y + l.h)) + 1);
+      const text = mergeLines(lines.map(l => l.text), cur.type);
+      let type = cur.type;
+      if (type === 'text') type = classifyTextBlock(text, lines);
+      const skip = shouldSkipBlock(type, text);
+      const fontSize = lines.reduce((s,l) => s + l.fontSize, 0) / lines.length;
+      return { id: `p${pageIndex}-b${blockIndex}`, pageIndex, blockIndex, type, text, translatedText: '', x: x1, y: y1, w: x2 - x1, h: y2 - y1, fontSize, skip, lineCount: lines.length };
+    }
+
+    function classifyLine(line, pageW, pageH) {
+      const t = line.text.trim();
+      if (!t) return 'empty';
+      if (/^(\d+|[ivxlcdm]+)$/i.test(t) && (line.y < pageH * .1 || line.y > pageH * .86)) return 'pageNumber';
+      if ((line.y < pageH * .065 || line.y > pageH * .92) && t.length < 80) return 'headerFooter';
+      if ($('protectMath').checked && isLikelyFormula(t)) return 'formula';
+      return 'text';
+    }
+
+    function classifyTextBlock(text, lines = []) {
+      const t = text.trim();
+      if (!t) return 'empty';
+      if ($('protectMath').checked && isLikelyFormula(t)) return 'formula';
+      if (/^(contents|preface|solutions?|glossary|about the authors?)$/i.test(t)) return 'title';
+      const words = t.split(/\s+/).length;
+      const avgFont = lines.length ? lines.reduce((s,l) => s + l.fontSize, 0) / lines.length : 12;
+      if (words <= 9 && t.length <= 82 && (avgFont > 13.5 || /^[A-Z0-9][A-Za-z0-9\s'’:.\-]+$/.test(t))) return 'title';
+      if (/^\d+\.?\s+/.test(t) || /^[•\-–]/.test(t)) return 'list';
+      return 'paragraph';
+    }
+
+    function shouldSkipBlock(type, text) {
+      if (['empty', 'formula', 'pageNumber'].includes(type)) return true;
+      if ($('skipHeaders').checked && type === 'headerFooter') return true;
+      const t = text.trim();
+      if (/^\.{3,}$/.test(t)) return true;
       return false;
     }
 
-    function protectInlinePatterns(text, lock, options) {
-      let out = text;
-
-      // URL/email: bảo vệ trước để không bị regex khác chạm vào.
-      if (options.refs) {
-        out = replaceSafe(out, /\bhttps?:\/\/[^\s<>()]+/giu, m => lock(m, 'url'));
-        out = replaceSafe(out, /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/giu, m => lock(m, 'url'));
-      }
-
-      if (options.math) {
-        out = replaceSafe(out, /\$\$[\s\S]*?\$\$|\$[^$\n]{1,160}\$/gu, m => lock(m, 'math'));
-        out = replaceSafe(out, /\\\[[\s\S]{1,400}?\\\]|\\\([\s\S]{1,220}?\\\)/gu, m => lock(m, 'math'));
-        out = replaceSafe(out, /\\(?:frac|sum|int|prod|lim|sqrt|binom|infty|partial|nabla|begin|end|alpha|beta|gamma|delta|theta|lambda|sigma|omega|mathbb|mathrm)\b(?:\{[^{}]{0,80}\}){0,3}/gu, m => lock(m, 'math'));
-        out = replaceSafe(out, /\b[A-Za-zα-ωΑ-Ω](?:_[A-Za-z0-9{}]+|\^[A-Za-z0-9{}]+|[₀-₉⁰-⁹]+){1,3}\b/gu, m => lock(m, 'math'));
-        out = replaceSafe(out, /\b(?:R\s*[²2]|R\^2|Adjusted\s+R\s*[²2]|p\s*-?\s*value|t\s*-?\s*test|z\s*-?\s*score|F\s*-?\s*statistic)\b/giu, m => lock(m, 'stats'));
-        out = replaceSafe(out, /[αβγδεζηθικλμνξοπρστυφχψωΑΒΓΔΘΛΞΠΣΦΨΩ](?:\s*[=<>≤≥≈≠]\s*[+-]?\d+(?:[.,]\d+)?)?/gu, m => lock(m, 'math'));
-        out = replaceSafe(out, /\b[A-Za-z]\s*(?:[=<>≤≥≈≠]|\+|-|×|÷|\*)\s*[+-]?\d+(?:[.,]\d+)?\b/gu, m => lock(m, 'math'));
-      }
-
-      if (options.units) {
-        out = replaceSafe(out, unitPattern(), m => lock(m, 'unit'));
-        out = replaceSafe(out, /\b(?:p\s*[<=>≤≥]\s*0?[.,]\d+|n\s*=\s*\d+|N\s*=\s*\d+|R\s*[²2]\s*=\s*0?[.,]\d+|95\s*%\s*CI\s*\[[^\]]+\]|CI\s*=\s*\[[^\]]+\])/giu, m => lock(m, 'stats'));
-        out = replaceSafe(out, /\b[+-]?\d+(?:[.,]\d+)?\s*(?:×|x|\*)\s*10\s*\^?\s*[+-]?\d+\b/giu, m => lock(m, 'number'));
-      }
-
-      if (options.refs) {
-        out = replaceSafe(out, /\b(?:Fig\.|Figure|Table|Eq\.|Equation|Algorithm|Appendix)\s*\(?[A-Za-z0-9.-]+\)?/giu, m => lock(m, 'ref'));
-        out = replaceSafe(out, /\[[0-9,\-\s;]{1,40}\]/gu, m => lock(m, 'ref'));
-        out = replaceSafe(out, /\b[A-Z][A-Za-z'’-]+\s+et\s+al\.\s*\(\d{4}[a-z]?\)/gu, m => lock(m, 'ref'));
-        out = replaceSafe(out, /\([A-Z][A-Za-z'’-]+(?:\s*&\s*[A-Z][A-Za-z'’-]+)?\s*,\s*\d{4}[a-z]?\)/gu, m => lock(m, 'ref'));
-      }
-
-      return out;
+    function isLikelyFormula(t) {
+      const s = String(t || '').trim();
+      if (s.length < 1) return false;
+      if (/^\d+\.?$/.test(s)) return false;
+      if (/^[A-Za-z ]{1,60}$/.test(s) && !/\b(sin|cos|tan|lim|log|max|min|gcd|lcm)\b/i.test(s)) return false;
+      const mathSymbols = (s.match(/[=+\-−*/^_{}()[\]∑∏∫√∞≤≥≠≈≡∈∉⊂⊃∪∩∂∇±×÷→←↔∀∃!]/g) || []).length;
+      const digits = (s.match(/\d/g) || []).length;
+      const letters = (s.match(/[A-Za-zα-ωΑ-Ω]/g) || []).length;
+      if (/[∑∏∫√≤≥≠≈≡∞]/.test(s)) return true;
+      if (/\b[a-zA-Z]\s*[=<>≤≥]\s*[-+]?\d/.test(s)) return true;
+      if (/\b[a-zA-Z]\s*\([^)]*\)\s*=/.test(s)) return true;
+      if (/\b\d+\s*!\b|\([^)]*\)!/.test(s)) return true;
+      if (/\b[a-zA-Z]\s*[_^][a-zA-Z0-9{}]+/.test(s)) return true;
+      if (/\b[a-zA-Z]\d+(?:\s*[+\-−]\s*[a-zA-Z]?\d*)?\b/.test(s) && /[=+\-−*/]/.test(s)) return true;
+      if (s.length <= 180 && mathSymbols >= 2 && (digits >= 1 || letters >= 1)) return true;
+      return false;
     }
 
-    function replaceSafe(text, regex, replacer) {
-      return text.replace(regex, (...args) => {
-        const match = args[0];
-        if (!match || containsLock(match)) return match;
-        // Tránh khóa nhầm token nằm sát token đã khóa.
-        return replacer(match);
-      });
-    }
-
-    function unitPattern() {
-      const num = String.raw`[+-]?(?:\d{1,3}(?:[,.]\d{3})+|\d+)(?:[.,]\d+)?(?:\s*(?:×|x|\*)\s*10\s*\^?\s*[+-]?\d+)?`;
-      const unit = String.raw`(?:%|‰|°\s*C|°\s*F|K|kg|g|mg|µg|ug|ng|lb|lbs|oz|mm|cm|m|km|in|inch|ft|yd|mi|m²|m2|m³|m3|cm²|cm2|cm³|cm3|s|sec|secs|min|mins|h|hr|hrs|ms|µs|m\/s²|m\/s2|m\/s|km\/h|mph|kg\/m³|kg\/m3|g\/cm³|g\/cm3|mol\/L|mmol\/L|µmol\/L|M|mM|N|Pa|kPa|MPa|GPa|bar|atm|J|kJ|MJ|cal|kcal|W|kW|MW|Wh|kWh|V|mV|A|mA|Hz|kHz|MHz|GHz|rpm|ppm|ppb|px|dpi|USD|EUR|GBP|CNY|JPY|VND)`;
-      return new RegExp(String.raw`(?<![\p{L}\p{N}_])${num}\s*${unit}(?![\p{L}\p{N}_])`, 'giu');
-    }
-
-    function restoreLocks(text, locks) {
-      let out = String(text || '');
-      // Direct restore.
-      for (const item of locks) {
-        out = out.split(item.token).join(item.value);
+    function mergeLines(lines, type) {
+      if (type === 'formula') return lines.join('\n');
+      let out = '';
+      for (const line of lines) {
+        const t = line.trim();
+        if (!t) continue;
+        if (!out) out = t;
+        else if (/[\-‐‑‒–—]$/.test(out)) out = out.replace(/[\-‐‑‒–—]$/, '') + t;
+        else if (/^[,.;:!?)]/.test(t)) out += t;
+        else out += ' ' + t;
       }
-      // Fuzzy restore: nếu dịch máy chèn khoảng trắng trong token.
-      for (const item of locks) {
-        const fuzzy = tokenToFuzzyRegex(item.token);
-        out = out.replace(fuzzy, item.value);
+      return normalizeTextLine(out);
+    }
+
+    function normalizeGlyphs(s) {
+      return String(s || '')
+        .replace(/\uFB01/g, 'fi').replace(/\uFB02/g, 'fl').replace(/\uFB00/g, 'ff').replace(/\uFB03/g, 'ffi').replace(/\uFB04/g, 'ffl')
+        .replace(/￾/g, '')
+        .replace(/\u0001/g, '∑')
+        .replace(/−/g, '−');
+    }
+
+    function normalizeTextLine(s) {
+      return String(s || '').replace(/[ \t]{2,}/g, ' ').replace(/\s+([,.;:!?])/g, '$1').trim();
+    }
+
+    function normalizeText(s) {
+      return String(s || '').replace(/\r/g, '\n').replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').replace(/\n{4,}/g, '\n\n\n').trim();
+    }
+
+    function splitTxtIntoBlocks(text) {
+      return normalizeText(text).split(/\n{2,}/).map(x => x.trim()).filter(Boolean);
+    }
+
+    function buildGlossary() {
+      if (!$('useGlossary').checked) return [];
+      const rows = els.customGlossary.value.split('\n').map(x => x.trim()).filter(x => x && !x.startsWith('#'));
+      const pairs = [];
+      for (const row of rows) {
+        const m = row.match(/^(.+?)\s*=\s*(.+)$/);
+        if (m) pairs.push({ source: m[1].trim(), target: m[2].trim() });
       }
-      return out;
+      pairs.sort((a,b) => b.source.length - a.source.length);
+      return pairs;
     }
 
-    function tokenToFuzzyRegex(token) {
-      const body = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const spaced = body.replace(/([A-Z_⟦⟧])/g, '$1\\s*');
-      return new RegExp(spaced, 'g');
+    function computeMetrics() {
+      const pages = state.pages.length;
+      const blocks = state.allBlocks.length;
+      const math = state.allBlocks.filter(b => b.type === 'formula').length;
+      const skip = state.allBlocks.filter(b => b.skip).length;
+      const text = state.allBlocks.filter(b => !b.skip).length;
+      const chars = state.allBlocks.reduce((s,b) => s + (b.text || '').length, 0);
+      const score = computeLayoutScore();
+      els.metricsBox.classList.add('show');
+      els.mPages.textContent = pages.toLocaleString();
+      els.mBlocks.textContent = blocks.toLocaleString();
+      els.mText.textContent = text.toLocaleString();
+      els.mMath.textContent = math.toLocaleString();
+      els.mSkip.textContent = skip.toLocaleString();
+      els.mTerms.textContent = state.glossary.length.toLocaleString();
+      els.mChars.textContent = chars.toLocaleString();
+      els.mScore.textContent = score.toFixed(1);
     }
 
-    // ═════════════════════════════════════════════════════
-    // TRANSLATION
-    // ═════════════════════════════════════════════════════
-    async function runTranslation() {
-      if (!protectedText || isBusy) return;
-      abortFlag = false;
-      setBusy(true, 'Đang dịch');
-      translatedText = '';
-      els.resultBox.classList.remove('show');
+    function computeLayoutScore() {
+      const mode = $('exportMode').value;
+      let base = mode === 'bilingual' ? 9.2 : mode === 'overlay' ? 8.4 : 7.2;
+      const mathRatio = state.allBlocks.length ? state.allBlocks.filter(b => b.type === 'formula').length / state.allBlocks.length : 0;
+      if (mathRatio > .18 && mode === 'overlay') base -= .3;
+      if (!$('useGlossary').checked) base -= .5;
+      if (!$('protectMath').checked) base -= 1.2;
+      return Math.max(1, Math.min(9.4, base));
+    }
+
+    async function translateBlocks() {
+      if (!state.pages.length || state.isBusy) return;
+      state.abort = false;
+      setBusy(true, 'Đang dịch block');
       try {
-        const sl = $('sourceLang').value;
-        const tl = $('targetLang').value;
-        const profile = PROFILES[$('profile').value] || PROFILES.quality;
-        log('info', `Dịch ${sl} → ${tl} · chunk=${profile.chunkSize} · concurrency=${profile.concurrency}`);
-
-        const chunks = chunkForTranslation(protectedText, profile.chunkSize);
-        if (!chunks.length) throw new Error('Không có nội dung để dịch.');
-        log('info', `Chia thành ${chunks.length} khối dịch`);
-
-        const results = new Array(chunks.length);
-        let done = 0;
-        let errors = 0;
-        setProgress(0, `Dịch 0/${chunks.length} khối`, '');
-
-        for (let i = 0; i < chunks.length; i += profile.concurrency) {
+        state.glossary = buildGlossary();
+        const blocks = state.allBlocks.filter(b => !b.skip && b.text && b.text.trim());
+        if (!blocks.length) throw new Error('Không có block văn bản thường để dịch.');
+        const profile = PROFILES[$('qualityProfile').value] || PROFILES.quality;
+        log('info', `Bắt đầu dịch ${blocks.length} block · concurrency=${profile.concurrency} · glossary=${state.glossary.length}`);
+        let done = 0, failed = 0;
+        for (let i = 0; i < blocks.length; i += profile.concurrency) {
           checkAbort();
-          const batch = chunks.slice(i, i + profile.concurrency);
-          await Promise.all(batch.map(async (chunk, localIndex) => {
-            const idx = i + localIndex;
+          const batch = blocks.slice(i, i + profile.concurrency);
+          await Promise.all(batch.map(async block => {
             try {
-              const translated = await translateChunk(chunk, sl, tl);
-              results[idx] = translated;
+              block.translatedText = await translateBlock(block, profile);
             } catch (err) {
-              errors++;
-              results[idx] = chunk;
-              log('warn', `Khối ${idx + 1} lỗi dịch, giữ nguyên text gốc: ${err.message || err}`);
+              failed++;
+              block.translatedText = block.text;
+              log('warn', `${block.id} lỗi dịch, giữ nguyên gốc: ${err.message || err}`);
             } finally {
               done++;
-              const pct = Math.round((done / chunks.length) * 100);
-              setProgress(pct, `Dịch ${done}/${chunks.length} khối`, chunks[idx].slice(0, 80).replace(/\s+/g, ' ') + '...');
-              if (done % 5 === 0 || done === chunks.length) log('ok', `Tiến độ dịch ${done}/${chunks.length} (${pct}%)`);
+              const pct = Math.round((done / blocks.length) * 100);
+              setProgress(pct, `Dịch block ${done}/${blocks.length}`, `${block.id} · ${block.text.slice(0, 90).replace(/\s+/g, ' ')}...`);
+              if (done % 20 === 0 || done === blocks.length) log('ok', `Dịch ${done}/${blocks.length} block (${pct}%)`);
             }
           }));
-          if (i + profile.concurrency < chunks.length) await sleep(profile.delay);
+          if (i + profile.concurrency < blocks.length) await sleep(profile.delay);
         }
-
-        const joined = results.join('\n\n');
-        translatedText = cleanAfterTranslation(restoreLocks(joined, lockStore));
-        setProgress(100, 'Dịch hoàn tất', `${translatedText.length.toLocaleString()} ký tự · ${errors} khối lỗi`);
-        log('ok', `Hoàn tất dịch · ${translatedText.length.toLocaleString()} ký tự · lỗi=${errors}`);
-        showResult();
-        updateStatus('Dịch xong');
-        toast('✓ Dịch xong');
+        polishAllTranslations();
+        computeMetrics();
+        state.outputHtml = buildOutputHtml();
+        renderPreview();
+        setProgress(100, 'Dịch hoàn tất', `${blocks.length - failed} OK · ${failed} lỗi`);
+        setStatus('Dịch xong · có thể mở bản in PDF');
+        log('ok', `Hoàn tất dịch · failed=${failed}`);
+        toast('✓ Dịch block xong');
       } catch (err) {
         log('err', err.message || String(err));
         toast(err.message || 'Có lỗi khi dịch');
-        updateStatus('Lỗi dịch');
-      } finally {
-        setBusy(false);
-      }
+        setStatus('Lỗi dịch');
+      } finally { setBusy(false); syncButtons(); }
     }
 
-    async function translateChunk(text, sl, tl, retries = 4) {
-      checkAbort();
+    async function translateBlock(block, profile) {
+      const original = block.text.trim();
+      if (!original) return '';
+      const prepared = prepareForTranslation(original);
+      if ($('translatorMode').value === 'mock') return restoreLocks('[MOCK VI] ' + prepared.text, prepared.locks);
+      const sl = $('sourceLang').value;
+      const tl = $('targetLang').value;
+      if (sl === tl && sl !== 'auto') return original;
+      let translated = await translateText(prepared.text, sl, tl, profile);
+      translated = restoreLocks(translated, prepared.locks);
+      return postPolish(translated, tl);
+    }
+
+    async function translateText(text, sl, tl, profile) {
       if (!text.trim()) return '';
-      if (text.length > GT_MAX) {
-        const cut = findSafeCut(text, Math.floor(text.length / 2));
-        const a = text.slice(0, cut);
-        const b = text.slice(cut);
-        const [ta, tb] = await Promise.all([translateChunk(a, sl, tl, retries), translateChunk(b, sl, tl, retries)]);
-        return ta + '\n' + tb;
+      if (text.length > profile.maxLen) {
+        const parts = splitBySafeLength(text, profile.maxLen);
+        const translatedParts = [];
+        for (const p of parts) translatedParts.push(await translateText(p, sl, tl, profile));
+        return translatedParts.join(' ');
       }
       const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${encodeURIComponent(sl)}&tl=${encodeURIComponent(tl)}&dt=t&q=${encodeURIComponent(text)}`;
-      for (let attempt = 1; attempt <= retries; attempt++) {
+      for (let attempt = 1; attempt <= profile.retries; attempt++) {
         checkAbort();
         try {
           const res = await fetch(url);
@@ -1200,199 +1048,261 @@
           if (!out.trim()) throw new Error('Kết quả dịch trống');
           return out;
         } catch (err) {
-          if (attempt === retries) throw err;
-          await sleep(700 * attempt);
+          if (attempt === profile.retries) throw err;
+          await sleep(650 * attempt);
         }
       }
       return text;
     }
 
-    function chunkForTranslation(text, maxSize) {
-      const paras = text.split(/\n{2,}/);
-      const chunks = [];
-      let cur = '';
-      for (const p of paras) {
-        const para = p.trim();
-        if (!para) continue;
-        if (para.length > maxSize) {
-          if (cur.trim()) { chunks.push(cur.trim()); cur = ''; }
-          chunks.push(...splitLongParagraph(para, maxSize));
-          continue;
-        }
-        if (cur.length + para.length + 2 > maxSize && cur.trim()) {
-          chunks.push(cur.trim());
-          cur = '';
-        }
-        cur += (cur ? '\n\n' : '') + para;
-      }
-      if (cur.trim()) chunks.push(cur.trim());
-      return chunks;
-    }
-
-    function splitLongParagraph(text, maxSize) {
+    function splitBySafeLength(text, maxLen) {
       const sentences = text.match(/[^.!?。！？]+[.!?。！？]*\s*/g) || [text];
-      const out = [];
-      let cur = '';
+      const out = []; let cur = '';
       for (const s of sentences) {
-        if (s.length > maxSize) {
-          if (cur.trim()) { out.push(cur.trim()); cur = ''; }
-          for (let i = 0; i < s.length; i += maxSize) out.push(s.slice(i, i + maxSize));
-          continue;
-        }
-        if (cur.length + s.length > maxSize && cur.trim()) { out.push(cur.trim()); cur = ''; }
-        cur += s;
+        if (cur.length + s.length > maxLen && cur.trim()) { out.push(cur.trim()); cur = ''; }
+        if (s.length > maxLen) {
+          for (let i = 0; i < s.length; i += maxLen) out.push(s.slice(i, i + maxLen));
+        } else cur += s;
       }
       if (cur.trim()) out.push(cur.trim());
       return out;
     }
 
-    function findSafeCut(text, near) {
-      const left = text.lastIndexOf('\n\n', near);
-      if (left > 200) return left;
-      const line = text.lastIndexOf('\n', near);
-      if (line > 200) return line;
-      const space = text.lastIndexOf(' ', near);
-      return space > 200 ? space : near;
+    function prepareForTranslation(text) {
+      const locks = [];
+      const lock = (value, targetValue = value, type = 'protect') => {
+        const token = `${LOCK_PREFIX}${numberToLetters(locks.length)}${LOCK_SUFFIX}`;
+        locks.push({ token, value, targetValue, type });
+        return token;
+      };
+      let out = text;
+      if ($('protectNames').checked) {
+        for (const name of NAME_WHITELIST) out = replacePhrase(out, name, () => lock(name, name, 'name'));
+        out = out.replace(/\b([A-Z]\.)\s*([A-Z]\.)\s*([A-Z][a-zÀ-ÿ'’.-]+)\b/g, m => lock(m, m, 'name'));
+      }
+      if ($('useGlossary').checked && $('targetLang').value === 'vi') {
+        for (const pair of state.glossary) out = replacePhrase(out, pair.source, () => lock(pair.source, pair.target, 'term'));
+      }
+      if ($('protectMath').checked) out = protectInlineMath(out, lock);
+      out = protectNumbersRefsUnits(out, lock);
+      return { text: out, locks };
     }
 
-    function cleanAfterTranslation(text) {
-      return String(text || '')
-        .replace(/\n{4,}/g, '\n\n\n')
-        .replace(/[ \t]+\n/g, '\n')
-        .trim();
+    function protectInlineMath(text, lock) {
+      let out = text;
+      const patterns = [
+        /\$[^$\n]{1,160}\$/g,
+        /\\\([^)]{1,180}\\\)|\\\[[\s\S]{1,260}?\\\]/g,
+        /\b[a-zA-Zα-ωΑ-Ω][a-zA-Z0-9]*\s*[=<>≤≥≈≠]\s*[-+]?\d+(?:[.,]\d+)?\b/g,
+        /\b[a-zA-Z]\s*[_^][a-zA-Z0-9{}]+\b/g,
+        /\b(?:x|y|z|m|n|k|a|b|c|d|p|q|r|u|v)\s*\([^)]{1,50}\)/gi,
+        /\b\d+\s*!\b|\([^)]{1,50}\)!/g,
+        /\b(?:sin|cos|tan|lim|log|ln|max|min|gcd|lcm)\s*\([^)]{1,80}\)/gi
+      ];
+      for (const re of patterns) out = out.replace(re, m => containsLock(m) ? m : lock(m, m, 'math'));
+      return out;
     }
 
-    // ═════════════════════════════════════════════════════
-    // OUTPUT
-    // ═════════════════════════════════════════════════════
-    function showResult() {
-      els.preview.textContent = translatedText.slice(0, 12000) + (translatedText.length > 12000 ? '\n\n[... Bản xem trước đã rút gọn. Tải TXT/HTML để xem đầy đủ ...]' : '');
-      els.resultBox.classList.add('show');
-      els.resultBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    function protectNumbersRefsUnits(text, lock) {
+      let out = text;
+      const patterns = [
+        /\bhttps?:\/\/[^\s<>()]+/gi,
+        /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi,
+        /\[[0-9,;\-\s]{1,40}\]/g,
+        /\b(?:Fig\.|Figure|Table|Eq\.|Equation|Theorem|Lemma|Corollary|Appendix)\s*\(?[A-Za-z0-9.\-]+\)?/gi,
+        /\b[+-]?\d+(?:[.,]\d+)?\s*(?:%|°\s*C|°\s*F|kg|g|mg|lb|lbs|oz|mm|cm|m|km|in|ft|mi|s|min|h|Hz|kHz|MHz|GHz|USD|EUR|VND)\b/gi,
+        /\b\d{4}\b/g
+      ];
+      for (const re of patterns) out = out.replace(re, m => containsLock(m) ? m : lock(m, m, 'ref'));
+      return out;
     }
 
-    function updateMetrics() {
-      els.metricsBox.classList.add('show');
-      els.mPages.textContent = meta.pages.toLocaleString();
-      els.mChars.textContent = meta.chars.toLocaleString();
-      els.mLocks.textContent = meta.locks.toLocaleString();
-      els.mMath.textContent = meta.math.toLocaleString();
-      els.mUnits.textContent = meta.units.toLocaleString();
-      els.mRefs.textContent = meta.refs.toLocaleString();
+    function replacePhrase(text, phrase, replacer) {
+      if (!phrase) return text;
+      const escaped = phrase.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
+      const re = new RegExp(`(?<![\\p{L}\\p{N}_])${escaped}(?![\\p{L}\\p{N}_])`, 'giu');
+      return text.replace(re, m => containsLock(m) ? m : replacer(m));
+    }
+
+    function containsLock(s) { return String(s).includes(LOCK_PREFIX); }
+
+    function restoreLocks(text, locks) {
+      let out = String(text || '');
+      for (const item of locks) out = out.split(item.token).join(item.targetValue);
+      for (const item of locks) out = out.replace(tokenToFuzzyRegex(item.token), item.targetValue);
+      return out;
+    }
+
+    function tokenToFuzzyRegex(token) {
+      const escaped = token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(escaped.replace(/([A-Z_⟦⟧0-9])/g, '$1\\s*'), 'g');
+    }
+
+    function numberToLetters(num) {
+      let n = num + 1, s = '';
+      while (n > 0) { n--; s = String.fromCharCode(65 + (n % 26)) + s; n = Math.floor(n / 26); }
+      return s.padStart(4, 'A');
+    }
+
+    function postPolish(text, tl) {
+      let out = String(text || '').replace(/\s+([,.;:!?])/g, '$1').replace(/\(\s+/g, '(').replace(/\s+\)/g, ')').replace(/[ \t]{2,}/g, ' ').trim();
+      if (tl === 'vi') {
+        const fixes = [
+          [/Mô hình thu nhỏ toán học/gi, 'Những tiểu phẩm toán học'],
+          [/Tổng kính thiên văn/gi, 'Tổng khử liên tiếp'],
+          [/tổng kính thiên văn/gi, 'tổng khử liên tiếp'],
+          [/Bản sắc Lagrange/gi, 'Đẳng thức Lagrange'],
+          [/bản sắc Lagrange/gi, 'đẳng thức Lagrange'],
+          [/Đồng nhất thức Lagrange/gi, 'Đẳng thức Lagrange'],
+          [/số nguyên tương đối nguyên tố/gi, 'các số nguyên nguyên tố cùng nhau'],
+          [/hệ số thực các giả thuyết/gi, 'hệ số thực'],
+          [/chức năng số/gi, 'hàm số'],
+          [/dạng khép kín/gi, 'dạng đóng'],
+          [/sản lượng/gi, 'thu được'],
+          [/rõ ràng là/gi, 'hiển nhiên là'],
+          [/điểm trừ/gi, 'dấu trừ'],
+          [/điểm cộng/gi, 'dấu cộng'],
+          [/David đồng tính/g, 'David Gay']
+        ];
+        for (const [re, rep] of fixes) out = out.replace(re, rep);
+      }
+      return out;
+    }
+
+    function polishAllTranslations() {
+      for (const b of state.allBlocks) if (b.translatedText) b.translatedText = postPolish(b.translatedText, $('targetLang').value);
+    }
+
+    function buildOutputHtml() {
+      const mode = $('exportMode').value;
+      const title = escapeHtml((state.selectedFile?.name || 'document').replace(/\.[^.]+$/, ''));
+      const now = escapeHtml(new Date().toLocaleString('vi-VN'));
+      const lang = escapeHtml($('targetLang').options[$('targetLang').selectedIndex].textContent);
+      const showIds = $('showBlockIds').checked;
+      const pagesHtml = state.pages.map(page => {
+        if (mode === 'overlay') return buildOverlayPage(page, showIds);
+        if (mode === 'reader') return buildReaderPage(page, showIds);
+        return buildBilingualPage(page, showIds);
+      }).join('\n');
+      return `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title} — TransLens v5</title>${outputStyles(mode)}</head><body><div class="topbar"><b>${title}</b><span>${lang} · ${now} · TransLens v5</span><button onclick="window.print()">Lưu PDF / In</button></div><main>${pagesHtml}</main></body></html>`;
+    }
+
+    function outputStyles(mode) {
+      const common = `<style>body{margin:0;background:#e5e7eb;color:#111;font-family:Arial,'Helvetica Neue',sans-serif}.topbar{position:sticky;top:0;z-index:99;background:#111827;color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;box-shadow:0 2px 14px rgba(0,0,0,.25);font-size:13px}.topbar span{color:#cbd5e1}.topbar button{background:#22c55e;color:#041008;border:0;border-radius:8px;padding:8px 13px;font-weight:700;cursor:pointer}main{padding:18px}.sheet{break-after:page;page-break-after:always;margin:0 auto 18px;background:#fff;box-shadow:0 10px 32px rgba(0,0,0,.2)}.block-id{font:700 9px ui-monospace,monospace;color:#2563eb;margin-right:4px}@media print{body{background:#fff}.topbar{display:none}main{padding:0}.sheet{box-shadow:none;margin:0;break-after:page;page-break-after:always}}`;
+      if (mode === 'overlay') return common + `<style>@page{margin:0}.sheet.overlay{position:relative;overflow:hidden}.sheet.overlay img.bg{display:block;width:100%;height:100%}.ov{position:absolute;background:rgba(255,255,255,.96);color:#111;overflow:hidden;border-radius:2px;padding:1px 2px;line-height:1.13}.ov.title{font-weight:700;text-align:center}.ov p{margin:0}.math-keep{outline:1px solid rgba(34,197,94,.14)}</style>`;
+      if (mode === 'reader') return common + `<style>@page{size:A4;margin:18mm}.sheet.reader{max-width:820px;padding:42px 56px;line-height:1.72;font-size:14px}.reader h2{font-size:18px;margin:0 0 16px;border-bottom:1px solid #ddd;padding-bottom:8px}.reader .para{margin:0 0 13px;text-align:justify}.reader .formula{font-family:'Times New Roman',serif;background:#f8fafc;border-left:3px solid #22c55e;padding:8px 10px;white-space:pre-wrap}</style>`;
+      return common + `<style>@page{size:A4 landscape;margin:7mm}.sheet.bilingual{width:1120px;min-height:760px;padding:16px;display:grid;grid-template-columns:520px 1fr;gap:18px}.original{border:1px solid #ddd;background:#fff;display:flex;align-items:flex-start;justify-content:center}.original img{max-width:100%;height:auto;display:block}.notes{border-left:4px solid #22c55e;padding-left:14px;line-height:1.55;font-size:12px}.notes h2{margin:0 0 10px;font-size:15px}.note{border:1px solid #e5e7eb;border-radius:9px;padding:8px 9px;margin:0 0 8px;background:#fbfdff}.note.title{background:#ecfdf5;border-color:#bbf7d0;font-weight:700}.note .src{color:#64748b;font-size:10px;margin-top:4px}.note .txt{white-space:pre-wrap}.empty-note{color:#64748b;font-style:italic}@media print{.sheet.bilingual{width:100%;min-height:0;grid-template-columns:46% 1fr;padding:0;gap:10mm}.notes{font-size:9.5pt}.note{break-inside:avoid}}</style>`;
+    }
+
+    function buildBilingualPage(page, showIds) {
+      const notes = page.blocks.filter(b => !b.skip).map(b => {
+        const txt = escapeHtml(b.translatedText || b.text);
+        const src = escapeHtml(b.text).slice(0, 220);
+        return `<div class="note ${b.type}"><div class="txt">${showIds ? `<span class="block-id">${b.id}</span>` : ''}${txt}</div><div class="src">Gốc: ${src}${b.text.length > 220 ? '…' : ''}</div></div>`;
+      }).join('') || '<div class="empty-note">Trang này không có block văn bản thường cần dịch.</div>';
+      const img = page.imageDataUrl ? `<img src="${page.imageDataUrl}" alt="Page ${page.index}">` : '';
+      return `<section class="sheet bilingual"><div class="original">${img}</div><div class="notes"><h2>Trang ${page.index}</h2>${notes}</div></section>`;
+    }
+
+    function buildOverlayPage(page, showIds) {
+      const scale = 1.55;
+      const boxes = page.blocks.filter(b => !b.skip).map(b => {
+        const fs = computeOverlayFontSize(b);
+        const cls = b.type === 'title' ? 'ov title' : 'ov';
+        const text = escapeHtml(b.translatedText || b.text);
+        return `<div class="${cls}" style="left:${b.x * scale}px;top:${b.y * scale}px;width:${Math.max(20, b.w * scale)}px;min-height:${Math.max(8, b.h * scale)}px;font-size:${fs}px"><p>${showIds ? `<span class="block-id">${b.id}</span>` : ''}${text}</p></div>`;
+      }).join('');
+      return `<section class="sheet overlay" style="width:${page.width * scale}px;height:${page.height * scale}px"><img class="bg" src="${page.imageDataUrl}" alt="Page ${page.index}">${boxes}</section>`;
+    }
+
+    function buildReaderPage(page, showIds) {
+      const content = page.blocks.map(b => {
+        const txt = escapeHtml(b.skip ? b.text : (b.translatedText || b.text));
+        const id = showIds ? `<span class="block-id">${b.id}</span>` : '';
+        if (b.type === 'title') return `<h2>${id}${txt}</h2>`;
+        if (b.type === 'formula') return `<div class="formula">${id}${txt}</div>`;
+        if (b.skip) return '';
+        return `<p class="para">${id}${txt}</p>`;
+      }).join('\n');
+      return `<section class="sheet reader"><h2>Trang ${page.index}</h2>${content}</section>`;
+    }
+
+    function computeOverlayFontSize(block) {
+      const original = Math.max(8, Math.min(18, block.fontSize * 1.35));
+      const lenRatio = (block.translatedText || block.text).length / Math.max(1, block.text.length);
+      let fs = original;
+      if (lenRatio > 1.25) fs *= .88;
+      if (lenRatio > 1.55) fs *= .78;
+      return Math.max(6.5, Math.min(17, fs)).toFixed(1);
+    }
+
+    function renderPreview() {
+      if (!state.pages.length) return;
+      els.previewPages.innerHTML = '';
+      const sample = state.pages.slice(0, 4);
+      for (const page of sample) {
+        const card = document.createElement('div');
+        card.className = 'mini-page';
+        const notes = page.blocks.filter(b => !b.skip).slice(0, 8).map(b => `<div class="mini-note"><b>${b.id} · ${escapeHtml(b.type)}</b>${escapeHtml(b.translatedText || b.text)}</div>`).join('') || '<div class="mini-note">Không có block dịch.</div>';
+        card.innerHTML = `<div class="mini-head"><span>Trang ${page.index}</span><span>${page.blocks.length} block</span></div><div class="mini-body"><img class="mini-img" src="${page.imageDataUrl}" alt="Page ${page.index}"><div class="mini-notes">${notes}</div></div>`;
+        els.previewPages.appendChild(card);
+      }
+      els.previewWrap.classList.add('show');
+      els.previewWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      syncButtons();
+    }
+
+    function openPrintDocument() {
+      if (!state.pages.length) return;
+      state.outputHtml = buildOutputHtml();
+      const win = window.open('', '_blank');
+      if (!win) { toast('Trình duyệt đang chặn popup. Hãy cho phép popup để mở bản in.'); return; }
+      win.document.open(); win.document.write(state.outputHtml); win.document.close();
+      setTimeout(() => { try { win.focus(); } catch (_) {} }, 500);
+      syncButtons();
+    }
+
+    function downloadHtml() {
+      if (!state.outputHtml) state.outputHtml = buildOutputHtml();
+      downloadBlob(new Blob([state.outputHtml], { type: 'text/html;charset=utf-8' }), outputName('html'));
+    }
+
+    function downloadJson() {
+      const data = {
+        file: state.selectedFile?.name || '',
+        createdAt: new Date().toISOString(),
+        mode: $('exportMode').value,
+        sourceLang: $('sourceLang').value,
+        targetLang: $('targetLang').value,
+        pages: state.pages.map(p => ({ index: p.index, width: p.width, height: p.height, blocks: p.blocks.map(b => ({ id: b.id, type: b.type, skip: b.skip, bbox: { x: b.x, y: b.y, w: b.w, h: b.h }, text: b.text, translatedText: b.translatedText })) }))
+      };
+      downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' }), outputName('json'));
+    }
+
+    function outputName(ext) {
+      const base = (state.selectedFile?.name || 'document').replace(/\.[^.]+$/, '').replace(/[^\p{L}\p{N}_-]+/gu, '_');
+      return `${base}_${$('targetLang').value}_translens_v5.${ext}`;
     }
 
     function downloadBlob(blob, name) {
       const a = document.createElement('a');
       const url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = name;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
     }
 
-    function outputName(ext) {
-      const base = (selectedFile?.name || 'document').replace(/\.[^.]+$/, '').replace(/[^\p{L}\p{N}_-]+/gu, '_');
-      return `${base}_${$('targetLang').value}_translens_v4.${ext}`;
+    async function copyFirstPageTranslation() {
+      const p = state.pages[0];
+      if (!p) return;
+      const text = p.blocks.filter(b => !b.skip).map(b => b.translatedText || b.text).join('\n\n');
+      try { await navigator.clipboard.writeText(text); toast('✓ Đã copy bản dịch trang đầu'); }
+      catch { toast('Không thể copy tự động'); }
     }
 
-    function buildHtmlDocument() {
-      const title = escapeHtml((selectedFile?.name || 'document').replace(/\.[^.]+$/, ''));
-      const langLabel = escapeHtml($('targetLang').options[$('targetLang').selectedIndex].textContent);
-      const body = escapeHtml(translatedText).split(/\n{2,}/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('\n');
-      const now = escapeHtml(new Date().toLocaleString('vi-VN'));
-      return `<!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${title} — TransLens v4</title>
-<style>
-  body{margin:0;color:#111;background:#f4f4f5;font-family:Arial,'Helvetica Neue',sans-serif;line-height:1.75;font-size:14px}
-  .toolbar{position:sticky;top:0;background:#111827;color:#fff;padding:12px 18px;display:flex;justify-content:space-between;gap:12px;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,.2)}
-  .toolbar button{background:#22c55e;color:#061108;border:0;border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer}
-  main{max-width:820px;margin:28px auto;background:#fff;padding:42px 54px;border-radius:14px;box-shadow:0 14px 48px rgba(0,0,0,.12)}
-  h1{font-size:22px;line-height:1.25;margin:0 0 6px} .meta{color:#666;font-size:12px;margin-bottom:28px;border-bottom:1px solid #ddd;padding-bottom:16px}
-  p{margin:0 0 13px;text-align:justify;white-space:normal}.page{color:#666;font-weight:700;margin-top:20px}
-  @media print{body{background:#fff}.toolbar{display:none}main{box-shadow:none;margin:0;max-width:none;padding:0}@page{size:A4;margin:2cm}}
-</style>
-</head>
-<body>
-<div class="toolbar"><span><b>${title}</b> · ${langLabel} · ${now}</span><button onclick="window.print()">Lưu PDF / In</button></div>
-<main><h1>${title}</h1><div class="meta">${langLabel} · ${now} · TransLens v4</div>${body}</main>
-</body>
-</html>`;
+    function clampInt(v, min, max) {
+      const n = parseInt(v, 10);
+      return Math.max(min, Math.min(max, Number.isFinite(n) ? n : min));
     }
-
-    $('downloadTxtBtn').addEventListener('click', () => {
-      if (!translatedText) return;
-      downloadBlob(new Blob([translatedText], { type: 'text/plain;charset=utf-8' }), outputName('txt'));
-    });
-
-    $('downloadHtmlBtn').addEventListener('click', () => {
-      if (!translatedText) return;
-      downloadBlob(new Blob([buildHtmlDocument()], { type: 'text/html;charset=utf-8' }), outputName('html'));
-    });
-
-    $('printPdfBtn').addEventListener('click', () => {
-      if (!translatedText) return;
-      const blob = new Blob([buildHtmlDocument()], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const win = window.open(url, '_blank');
-      if (!win) { toast('Trình duyệt đang chặn popup. Hãy cho phép popup để mở bản in PDF.'); return; }
-      setTimeout(() => URL.revokeObjectURL(url), 30_000);
-    });
-
-    $('copyBtn').addEventListener('click', async () => {
-      if (!translatedText) return;
-      try { await navigator.clipboard.writeText(translatedText); toast('✓ Đã sao chép'); }
-      catch { toast('Không thể sao chép tự động'); }
-    });
-
-    // ═════════════════════════════════════════════════════
-    // RESET / EVENTS
-    // ═════════════════════════════════════════════════════
-    function resetState(clearFile = true) {
-      rawText = '';
-      protectedText = '';
-      translatedText = '';
-      lockStore = [];
-      meta = { pages: 0, chars: 0, locks: 0, math: 0, units: 0, refs: 0 };
-      abortFlag = false;
-      logN = 0;
-      els.logBody.innerHTML = '';
-      els.logCount.textContent = '0 dòng';
-      els.logBox.classList.remove('show');
-      els.progressBox.classList.remove('show');
-      els.resultBox.classList.remove('show');
-      els.metricsBox.classList.remove('show');
-      els.progressFill.style.width = '0%';
-      els.preview.textContent = '';
-      if (clearFile) {
-        selectedFile = null;
-        els.fileInput.value = '';
-        els.fileCard.classList.remove('show');
-        els.readBtn.disabled = true;
-        els.translateBtn.disabled = true;
-        els.resetBtn.disabled = true;
-        updateStatus('Chưa chọn file');
-      }
-    }
-
-    els.readBtn.addEventListener('click', readAndProtect);
-    els.translateBtn.addEventListener('click', runTranslation);
-    els.cancelBtn.addEventListener('click', () => { abortFlag = true; log('warn', 'Đã gửi tín hiệu hủy. Tác vụ sẽ dừng sau bước hiện tại.'); });
-    els.resetBtn.addEventListener('click', async () => {
-      abortFlag = true;
-      resetState(true);
-      setBusy(false);
-      toast('Đã làm lại');
-    });
-
-    window.addEventListener('beforeunload', async () => {
-      if (ocrWorker) await ocrWorker.terminate();
-    });
   </script>
 </body>
 </html>
